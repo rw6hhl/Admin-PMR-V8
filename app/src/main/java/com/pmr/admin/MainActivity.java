@@ -3,8 +3,10 @@ package com.pmr.admin;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.os.PowerManager;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -13,19 +15,28 @@ import androidx.appcompat.app.AppCompatActivity;
 
 public class MainActivity extends AppCompatActivity {
     private SharedPreferences prefs;
-    private TextView tvChannel, tvIndex, tvMode, tvReceive, tvSpeakingId;
+    private TextView tvChannel, tvIndex, tvMode, tvReceive, tvSpeakingId, tvVersion;
     private ImageView imgRed, imgGreen;
     private Button btnMenu, btnUp, btnDown, btnSave1, btnSave2, btnSave3, btnSave4, btnSave5, btnCall, btnPTT, btnSecretMode;
 
     private int currentChannel = 1;
     private boolean isRecording = false;
     private boolean isAdminMode = false;
+    private PowerManager.WakeLock wakeLock;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         
+        // Экран не гаснет
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
+        if (powerManager != null) {
+            wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "PMR::WakeLock");
+            wakeLock.acquire();
+        }
+
         prefs = getSharedPreferences("pmr_prefs", MODE_PRIVATE);
         currentChannel = prefs.getInt("current_channel", 1);
         isAdminMode = prefs.getBoolean("is_admin_mode", false);
@@ -44,6 +55,7 @@ public class MainActivity extends AppCompatActivity {
         tvMode = findViewById(R.id.textView5);
         tvReceive = findViewById(R.id.textView8);
         tvSpeakingId = findViewById(R.id.tvSpeakingId);
+        tvVersion = findViewById(R.id.tvVersion);
         imgRed = findViewById(R.id.imageView);
         imgGreen = findViewById(R.id.imageView2);
 
@@ -82,11 +94,11 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        // Логика переключения каналов
         btnUp.setOnClickListener(v -> {
             if (currentChannel < 8) {
                 currentChannel++;
                 updateUI();
+                prefs.edit().putInt("current_channel", currentChannel).apply();
             }
         });
 
@@ -94,30 +106,28 @@ public class MainActivity extends AppCompatActivity {
             if (currentChannel > 0) {
                 currentChannel--;
                 updateUI();
+                prefs.edit().putInt("current_channel", currentChannel).apply();
             }
         });
 
-        // Логика ячеек (сохранение / загрузка по нажатию)
+        // Настройка ячеек
         btnSave1.setOnClickListener(v -> loadPreset(1));
         btnSave2.setOnClickListener(v -> loadPreset(2));
         btnSave3.setOnClickListener(v -> loadPreset(3));
         btnSave4.setOnClickListener(v -> loadPreset(4));
         btnSave5.setOnClickListener(v -> loadPreset(5));
 
-        // Долгое нажатие для сохранения в ячейку
         btnSave1.setOnLongClickListener(v -> { savePreset(1); return true; });
         btnSave2.setOnLongClickListener(v -> { savePreset(2); return true; });
         btnSave3.setOnLongClickListener(v -> { savePreset(3); return true; });
         btnSave4.setOnLongClickListener(v -> { savePreset(4); return true; });
         btnSave5.setOnLongClickListener(v -> { savePreset(5); return true; });
 
-        // PTT
         btnPTT.setOnTouchListener((v, event) -> {
             switch (event.getAction()) {
                 case MotionEvent.ACTION_DOWN:
                     isRecording = true;
                     imgRed.setVisibility(View.VISIBLE);
-                    Toast.makeText(this, "Передача...", Toast.LENGTH_SHORT).show();
                     return true;
                 case MotionEvent.ACTION_UP:
                 case MotionEvent.ACTION_CANCEL:
@@ -169,6 +179,7 @@ public class MainActivity extends AppCompatActivity {
         tvIndex.setText(prefs.getString("MyMailIndex", "111111"));
         tvMode.setText(prefs.getBoolean("simplex", false) ? "simplex" : "duplex");
         tvReceive.setText("No receive"); 
+        tvVersion.setText("v" + BuildConfig.VERSION_NAME);
         
         if (isAdminMode) {
             tvChannel.setTextColor(getResources().getColor(R.color.active));
@@ -188,6 +199,9 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        if (wakeLock != null && wakeLock.isHeld()) {
+            wakeLock.release();
+        }
         Intent serviceIntent = new Intent(this, PmrService.class);
         stopService(serviceIntent);
     }

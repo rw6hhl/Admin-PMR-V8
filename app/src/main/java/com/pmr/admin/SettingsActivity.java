@@ -1,6 +1,7 @@
 package com.pmr.admin;
 
 import android.app.AlertDialog;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.View;
@@ -16,6 +17,7 @@ public class SettingsActivity extends AppCompatActivity {
     private EditText editMailIndex, editPriznak, editPortPrm, editPortPrd, editIp;
     private Switch switchSimplex;
     private LinearLayout layoutServerSettings;
+    private Button btnChanList;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -31,6 +33,7 @@ public class SettingsActivity extends AppCompatActivity {
         editIp = findViewById(R.id.editIp);
         switchSimplex = findViewById(R.id.switchSimplex);
         layoutServerSettings = findViewById(R.id.layoutServerSettings);
+        btnChanList = findViewById(R.id.btnChanList);
 
         // Загрузка
         editMailIndex.setText(prefs.getString("MyMailIndex", "111111"));
@@ -39,6 +42,11 @@ public class SettingsActivity extends AppCompatActivity {
         editPortPrd.setText(String.valueOf(prefs.getInt("PORT_prd", 16000)));
         editIp.setText(prefs.getString("ip_server", "185.221.154.39"));
         switchSimplex.setChecked(prefs.getBoolean("simplex", false));
+
+        // Показываем кнопку "Список" только в режиме Админа
+        if (prefs.getBoolean("is_admin_mode", false)) {
+            btnChanList.setVisibility(View.VISIBLE);
+        }
 
         findViewById(R.id.btnToggleServer).setOnClickListener(v -> {
             if (layoutServerSettings.getVisibility() == View.GONE) {
@@ -49,6 +57,11 @@ public class SettingsActivity extends AppCompatActivity {
         });
 
         findViewById(R.id.btnCodecDialog).setOnClickListener(v -> showCodecDialog());
+        
+        btnChanList.setOnClickListener(v -> {
+            startActivity(new Intent(this, ChanListActivity.class));
+        });
+
         findViewById(R.id.btnSaveSettings).setOnClickListener(v -> saveSettings());
     }
 
