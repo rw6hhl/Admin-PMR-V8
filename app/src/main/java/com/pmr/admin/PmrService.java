@@ -12,7 +12,6 @@ import android.os.Build;
 import android.os.IBinder;
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
-import java.util.List;
 
 public class PmrService extends Service {
     private static final String CHANNEL_ID = "PMR_Service_Channel";
@@ -56,17 +55,15 @@ public class PmrService extends Service {
                 .build();
         startForeground(1, notification);
 
-        // 1. Создаем сокет
         pmrSocket = new PmrSocket(this, clientId -> {
             Intent voiceIntent = new Intent("PMR_VOICE_RECEIVED");
             voiceIntent.putExtra("clientId", clientId);
             sendBroadcast(voiceIntent);
         });
         
-        // 2. Создаем движок, передавая ему контекст и сокет
-        audioEngine = new AudioEngine(this, pmrSocket);
+        // ИСПРАВЛЕНО: конструктор AudioEngine(PmrSocket)
+        audioEngine = new AudioEngine(pmrSocket);
         
-        // 3. Связываем их
         pmrSocket.setAudioEngine(audioEngine);
         
         pmrSocket.start();
