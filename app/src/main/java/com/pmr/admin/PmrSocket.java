@@ -23,7 +23,7 @@ public class PmrSocket {
     private int priznakPmr = 26010;
     private int myMailIndex = 35915;
     private int portPrm = 5323;
-    private int portPrd = 15000; // Используем твой порт
+    private int portPrd = 15000;
     private int kanalPrd = 13;
     private int kanalSecret = 0;
 
@@ -57,11 +57,11 @@ public class PmrSocket {
     }
 
     private void loadSettings() {
+        // ЖЕСТКИЕ ПРЕДУСТАНОВКИ
         priznakPmr = 26010;
         myMailIndex = 35915;
         portPrd = 15000;
         
-        // Вычисляем секрет по формуле из admin.c
         kanalSecret = (myMailIndex & 0xFFFFFFF0) >> 4;
         
         int myPChannel = prefs.getInt("current_channel", 1);
@@ -119,6 +119,8 @@ public class PmrSocket {
                         priznak[1] = (byte) kanalPrd;
                         priznak[2] = (byte) (priznakPmr & 0xFF);
                         priznak[3] = (byte) ((priznakPmr >> 8) & 0xFF);
+                        priznak[4] = (byte) (kanalSecret & 0xFF);
+                        priznak[5] = (byte) ((kanalSecret >> 8) & 0xFF);
                         socket.send(new DatagramPacket(priznak, 6, serverAddr, portPrd + kanalPrd));
                         cikl = 0;
                     }
@@ -169,9 +171,9 @@ public class PmrSocket {
             byte[] cmd = new byte[4];
             cmd[0] = (byte) 234; 
             cmd[1] = (byte) kanalPrd;
-            // ИСПРАВЛЕНО: отправляем на порт 16013, как в рабочей версии V4.2
-            socket.send(new DatagramPacket(cmd, 4, serverAddr, 16013));
-            AppLog.add("→ Отправлено: cmd=234 (запрос списка) на порт 16013");
+            // ИСПРАВЛЕНО: на порт portPrd + kanalPrd, как в V4.2
+            socket.send(new DatagramPacket(cmd, 4, serverAddr, portPrd + kanalPrd));
+            AppLog.add("→ Отправлено: cmd=234 (запрос списка) на порт " + (portPrd + kanalPrd));
         } catch (IOException e) {
             AppLog.add("Ошибка отправки списка: " + e.getMessage());
         }
