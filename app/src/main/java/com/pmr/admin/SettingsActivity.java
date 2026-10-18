@@ -8,14 +8,12 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
-import android.widget.Switch;
 import androidx.appcompat.app.AppCompatActivity;
 
 public class SettingsActivity extends AppCompatActivity {
 
     private SharedPreferences prefs;
     private EditText editMailIndex, editPriznak, editPortPrm, editPortPrd, editIp;
-    private Switch switchSimplex;
     private LinearLayout layoutServerSettings;
     private Button btnChanList, btnLogs;
 
@@ -31,18 +29,15 @@ public class SettingsActivity extends AppCompatActivity {
         editPortPrm = findViewById(R.id.editPortPrm);
         editPortPrd = findViewById(R.id.editPortPrd);
         editIp = findViewById(R.id.editIp);
-        switchSimplex = findViewById(R.id.switchSimplex);
         layoutServerSettings = findViewById(R.id.layoutServerSettings);
         btnChanList = findViewById(R.id.btnChanList);
         btnLogs = findViewById(R.id.btnLogs);
 
-        // ИСПРАВЛЕНО: значения по умолчанию
-        editMailIndex.setText(prefs.getString("MyMailIndex", "035915"));
-        editPriznak.setText(prefs.getString("Priznak_pmr", "26010"));
-        editPortPrm.setText(String.valueOf(prefs.getInt("PORT_prm", 5323)));
-        editPortPrd.setText(String.valueOf(prefs.getInt("PORT_prd", 15000)));
-        editIp.setText(prefs.getString("ip_server", "109.172.7.155"));
-        switchSimplex.setChecked(prefs.getBoolean("simplex", false));
+        editMailIndex.setText(prefs.getString("MyMailIndex", "51953"));
+        editPriznak.setText(prefs.getString("Priznak_pmr", "26000"));
+        editPortPrm.setText(String.valueOf(prefs.getInt("PORT_prm", 5254)));
+        editPortPrd.setText(String.valueOf(prefs.getInt("PORT_prd", 16000)));
+        editIp.setText(prefs.getString("ip_server", "185.221.154.39"));
 
         if (prefs.getBoolean("is_admin_mode", false)) {
             btnChanList.setVisibility(View.VISIBLE);
@@ -79,7 +74,6 @@ public class SettingsActivity extends AppCompatActivity {
         editor.putInt("PORT_prm", Integer.parseInt(editPortPrm.getText().toString()));
         editor.putInt("PORT_prd", Integer.parseInt(editPortPrd.getText().toString()));
         editor.putString("ip_server", editIp.getText().toString());
-        editor.putBoolean("simplex", switchSimplex.isChecked());
         editor.apply();
         finish();
     }

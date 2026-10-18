@@ -1,15 +1,11 @@
 package com.pmr.admin;
 
-import android.Manifest;
-import android.content.Context;
-import android.content.pm.PackageManager;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioRecord;
 import android.media.AudioTrack;
 import android.media.MediaRecorder;
 import android.util.Log;
-import androidx.core.content.ContextCompat;
 
 public class AudioEngine {
     private static final String TAG = "AudioEngine";
@@ -27,7 +23,6 @@ public class AudioEngine {
     private Thread playThread;
     private PmrSocket socket;
     private G711Ua g711 = new G711Ua();
-    private Context context;
 
     private final byte[][] ringBuf = new byte[100][324];
     private int ringWriteIdx = 0;
@@ -38,15 +33,15 @@ public class AudioEngine {
     private int txCounter = 0;
     private long lastTxLogTime = 0;
 
-    public AudioEngine(Context ctx, PmrSocket socket) {
-        this.context = ctx;
+    public AudioEngine(PmrSocket socket) {
         this.socket = socket;
         int minBufIn = AudioRecord.getMinBufferSize(SAMPLE_RATE, CHANNEL_CONFIG_IN, AUDIO_FORMAT);
         int minBufOut = AudioTrack.getMinBufferSize(SAMPLE_RATE, CHANNEL_CONFIG_OUT, AUDIO_FORMAT);
 
         try {
             recorder = new AudioRecord(MediaRecorder.AudioSource.MIC, SAMPLE_RATE, CHANNEL_CONFIG_IN, AUDIO_FORMAT, Math.max(minBufIn, BUFFER_SIZE * 2));
-            player = new AudioTrack(AudioManager.STREAM_VOICE_CALL, SAMPLE_RATE, CHANNEL_CONFIG_OUT, AUDIO_FORMAT, Math.max(minBufOut, BUFFER_SIZE * 4), AudioTrack.MODE_STREAM);
+            // ИСПРАВЛЕНО: используем STREAM_MUSIC и CHANNEL_OUT_MONO, как в V4.2
+            player = new AudioTrack(AudioManager.STREAM_MUSIC, SAMPLE_RATE, CHANNEL_CONFIG_OUT, AUDIO_FORMAT, Math.max(minBufOut, BUFFER_SIZE * 4), AudioTrack.MODE_STREAM);
             AppLog.add("AudioEngine: Инициализирован (RX/TX)");
         } catch (Exception e) {
             Log.e(TAG, "Audio init error: " + e.getMessage());
@@ -59,17 +54,7 @@ public class AudioEngine {
     }
 
     public void startRecording() {
-        if (recorder == null) {
-            AppLog.add("Ошибка: recorder == null (нет разрешения?)");
-            return;
-        }
-        
-        // Проверка разрешения перед стартом
-        if (context != null && ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-            AppLog.add("Ошибка: Нет разрешения на микрофон!");
-            return;
-        }
-
+        if (recorder == null) return;
         if (isRecording) return;
         isRecording = true;
         
@@ -77,7 +62,6 @@ public class AudioEngine {
             recorder.startRecording();
             AppLog.add("AudioEngine: Начата запись с микрофона");
         } catch (Exception e) {
-            Log.e(TAG, "startRecording error: " + e.getMessage());
             AppLog.add("Ошибка записи: " + e.getMessage());
             isRecording = false;
             return;
@@ -109,12 +93,8 @@ public class AudioEngine {
         if (!isRecording) return;
         isRecording = false;
         if (recorder != null) {
-            try { 
-                recorder.stop(); 
-                AppLog.add("AudioEngine: Запись остановлена");
-            } catch (Exception e) {
-                Log.e(TAG, "stopRecording error: " + e.getMessage());
-            }
+            try { recorder.stop(); } catch (Exception ignored) {}
+            AppLog.add("AudioEngine: Запись остановлена");
         }
     }
 
