@@ -49,13 +49,13 @@ public class MainActivity extends AppCompatActivity {
         
         prefs = getSharedPreferences("pmr_prefs", MODE_PRIVATE);
         
-        // ПРИНУДИТЕЛЬНЫЙ СБРОС НАСТРОЕК ПРИ СМЕНЕ ВЕРСИИ
+        // ПРИНУДИТЕЛЬНЫЙ СБРОС (Версия 9.6)
         String savedVersion = prefs.getString("app_version", "0");
-        if (!savedVersion.equals("9.5")) {
+        if (!savedVersion.equals("9.6")) {
             prefs.edit()
-                .putString("app_version", "9.5")
-                .putString("MyMailIndex", "26000")
-                .putString("Priznak_pmr", "51953")
+                .putString("app_version", "9.6")
+                .putString("MyMailIndex", "51953")
+                .putString("Priznak_pmr", "26000")
                 .putInt("PORT_prm", 5254)
                 .putInt("PORT_prd", 16000)
                 .putString("ip_server", "185.221.154.39")
@@ -63,7 +63,7 @@ public class MainActivity extends AppCompatActivity {
                 .putBoolean("simplex", false)
                 .putBoolean("is_admin_mode", false)
                 .apply();
-            AppLog.add("Настройки сброшены на предустановки (V9.5)");
+            AppLog.add("Настройки сброшены (V9.6)");
         }
 
         requestMicPermission();
@@ -104,8 +104,7 @@ public class MainActivity extends AppCompatActivity {
                 stopService(serviceIntent);
                 startService(serviceIntent);
             } else {
-                AppLog.add("ОШИБКА: Разрешение на микрофон отклонено!");
-                Toast.makeText(this, "Без микрофона передача не работает!", Toast.LENGTH_LONG).show();
+                AppLog.add("ОШИБКА: Разрешение отклонено!");
             }
         }
     }
@@ -210,8 +209,8 @@ public class MainActivity extends AppCompatActivity {
         currentChannel = prefs.getInt("preset_channel_" + presetNum, currentChannel);
         prefs.edit()
             .putInt("current_channel", currentChannel)
-            .putString("MyMailIndex", prefs.getString("preset_index_" + presetNum, prefs.getString("MyMailIndex", "26000")))
-            .putString("Priznak_pmr", prefs.getString("preset_priznak_" + presetNum, prefs.getString("Priznak_pmr", "51953")))
+            .putString("MyMailIndex", prefs.getString("preset_index_" + presetNum, prefs.getString("MyMailIndex", "51953")))
+            .putString("Priznak_pmr", prefs.getString("preset_priznak_" + presetNum, prefs.getString("Priznak_pmr", "26000")))
             .putString("ip_server", prefs.getString("preset_ip_" + presetNum, prefs.getString("ip_server", "185.221.154.39")))
             .putInt("codec", prefs.getInt("preset_codec_" + presetNum, prefs.getInt("codec", 3)))
             .putBoolean("simplex", prefs.getBoolean("preset_simplex_" + presetNum, prefs.getBoolean("simplex", false)))
@@ -222,7 +221,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void updateUI() {
         tvChannel.setText(currentChannel == 0 ? "R" : String.valueOf(currentChannel));
-        tvIndex.setText(prefs.getString("MyMailIndex", "26000"));
+        tvIndex.setText(prefs.getString("MyMailIndex", "51953"));
         tvMode.setText(prefs.getBoolean("simplex", false) ? "simplex" : "duplex");
         tvReceive.setText("No receive"); 
         tvVersion.setText("v" + BuildConfig.VERSION_NAME);

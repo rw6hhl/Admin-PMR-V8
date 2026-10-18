@@ -20,8 +20,8 @@ public class PmrSocket {
     private AudioEngine audioEngine;
     
     private SharedPreferences prefs;
-    private int priznakPmr = 51953;
-    private int myMailIndex = 26000;
+    private int priznakPmr = 26000;
+    private int myMailIndex = 51953;
     private int portPrm = 5254;
     private int portPrd = 16000;
     private int kanalPrd = 13;
@@ -42,7 +42,6 @@ public class PmrSocket {
         this.prefs = context.getSharedPreferences("pmr_prefs", Context.MODE_PRIVATE);
         loadSettings();
         try {
-            // ПРИМЕНЕН IP ИЗ V4.2
             this.serverAddr = InetAddress.getByName("185.221.154.39");
             this.socket = new DatagramSocket(portPrm);
             this.socket.setSoTimeout(1000);
@@ -58,8 +57,8 @@ public class PmrSocket {
     }
 
     private void loadSettings() {
-        priznakPmr = 51953;
-        myMailIndex = 26000;
+        priznakPmr = 26000;
+        myMailIndex = 51953;
         portPrm = 5254;
         portPrd = 16000;
         
