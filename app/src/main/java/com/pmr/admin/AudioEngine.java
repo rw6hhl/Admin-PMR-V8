@@ -1,11 +1,15 @@
 package com.pmr.admin;
 
+import android.Manifest;
+import android.content.Context;
+import android.content.pm.PackageManager;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioRecord;
 import android.media.AudioTrack;
 import android.media.MediaRecorder;
 import android.util.Log;
+import androidx.core.content.ContextCompat;
 
 public class AudioEngine {
     private static final String TAG = "AudioEngine";
@@ -23,6 +27,7 @@ public class AudioEngine {
     private Thread playThread;
     private PmrSocket socket;
     private G711Ua g711 = new G711Ua();
+    private Context context;
 
     private final byte[][] ringBuf = new byte[100][324];
     private int ringWriteIdx = 0;
@@ -33,7 +38,8 @@ public class AudioEngine {
     private int txCounter = 0;
     private long lastTxLogTime = 0;
 
-    public AudioEngine(PmrSocket socket) {
+    public AudioEngine(Context ctx, PmrSocket socket) {
+        this.context = ctx;
         this.socket = socket;
         int minBufIn = AudioRecord.getMinBufferSize(SAMPLE_RATE, CHANNEL_CONFIG_IN, AUDIO_FORMAT);
         int minBufOut = AudioTrack.getMinBufferSize(SAMPLE_RATE, CHANNEL_CONFIG_OUT, AUDIO_FORMAT);
@@ -57,6 +63,13 @@ public class AudioEngine {
             AppLog.add("Ошибка: recorder == null (нет разрешения?)");
             return;
         }
+        
+        // Проверка разрешения перед стартом
+        if (context != null && ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            AppLog.add("Ошибка: Нет разрешения на микрофон!");
+            return;
+        }
+
         if (isRecording) return;
         isRecording = true;
         

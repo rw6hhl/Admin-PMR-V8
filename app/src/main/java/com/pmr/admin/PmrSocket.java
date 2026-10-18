@@ -57,11 +57,9 @@ public class PmrSocket {
     }
 
     private void loadSettings() {
-        // ЖЕСТКИЕ ПРЕДУСТАНОВКИ
         priznakPmr = 26010;
         myMailIndex = 35915;
         portPrd = 15000;
-        
         kanalSecret = (myMailIndex & 0xFFFFFFF0) >> 4;
         
         int myPChannel = prefs.getInt("current_channel", 1);
@@ -94,6 +92,12 @@ public class PmrSocket {
         receiveThread.start();
         
         startPingThread();
+        
+        // Автоматический запрос списка через 2 секунды
+        new Thread(() -> {
+            try { Thread.sleep(2000); } catch (InterruptedException ignored) {}
+            requestChanList();
+        }).start();
     }
 
     private void startPingThread() {
@@ -101,7 +105,6 @@ public class PmrSocket {
             int cikl = 0;
             while (isRunning) {
                 try {
-                    // cmd=7 (секрет) отправляется раз в секунду
                     byte[] ping = new byte[4];
                     ping[0] = 7; 
                     ping[1] = (byte) kanalPrd; 
@@ -112,7 +115,6 @@ public class PmrSocket {
                     Thread.sleep(1000);
                     cikl++;
                     
-                    // cmd=0 (признак) раз в 4 секунды
                     if (cikl > 3) {
                         byte[] priznak = new byte[6];
                         priznak[0] = 0; 
@@ -171,7 +173,6 @@ public class PmrSocket {
             byte[] cmd = new byte[4];
             cmd[0] = (byte) 234; 
             cmd[1] = (byte) kanalPrd;
-            // ИСПРАВЛЕНО: на порт portPrd + kanalPrd, как в V4.2
             socket.send(new DatagramPacket(cmd, 4, serverAddr, portPrd + kanalPrd));
             AppLog.add("→ Отправлено: cmd=234 (запрос списка) на порт " + (portPrd + kanalPrd));
         } catch (IOException e) {
@@ -190,20 +191,6 @@ public class PmrSocket {
             AppLog.add("→ Отправлено: БАН ID=" + targetId);
         } catch (IOException e) {
             AppLog.add("Ошибка бана: " + e.getMessage());
-        }
-    }
-
-    public void sendUnban(int targetId) {
-        byte[] unban = new byte[4];
-        unban[0] = (byte) 222; 
-        unban[1] = (byte) kanalPrd;
-        unban[2] = (byte) (targetId & 0xFF);
-        unban[3] = (byte) ((targetId >> 8) & 0xFF);
-        try {
-            socket.send(new DatagramPacket(unban, 4, serverAddr, portPrd + kanalPrd));
-            AppLog.add("→ Отправлено: РАЗБАН ID=" + targetId);
-        } catch (IOException e) {
-            AppLog.add("Ошибка разбана: " + e.getMessage());
         }
     }
 
