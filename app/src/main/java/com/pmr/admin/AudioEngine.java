@@ -29,6 +29,9 @@ public class AudioEngine {
     private int ringReadIdx = 0;
     private int ringCount = 0;
     private final Object ringLock = new Object();
+    
+    private int txCounter = 0;
+    private long lastTxLogTime = 0;
 
     public AudioEngine(PmrSocket socket) {
         this.socket = socket;
@@ -38,8 +41,10 @@ public class AudioEngine {
         try {
             recorder = new AudioRecord(MediaRecorder.AudioSource.MIC, SAMPLE_RATE, CHANNEL_CONFIG_IN, AUDIO_FORMAT, Math.max(minBufIn, BUFFER_SIZE * 2));
             player = new AudioTrack(AudioManager.STREAM_VOICE_CALL, SAMPLE_RATE, CHANNEL_CONFIG_OUT, AUDIO_FORMAT, Math.max(minBufOut, BUFFER_SIZE * 4), AudioTrack.MODE_STREAM);
+            AppLog.add("AudioEngine: Инициализирован (RX/TX)");
         } catch (Exception e) {
             Log.e(TAG, "Audio init error: " + e.getMessage());
+            AppLog.add("AudioEngine: Ошибка инициализации: " + e.getMessage());
         }
     }
 
@@ -48,9 +53,8 @@ public class AudioEngine {
     }
 
     public void startRecording() {
-        // ЗАЩИТА ОТ ВЫЛЕТА: если рекордер не создан, выходим
         if (recorder == null) {
-            Log.e(TAG, "startRecording: recorder is null!");
+            AppLog.add("Ошибка: recorder == null (нет разрешения?)");
             return;
         }
         if (isRecording) return;
@@ -58,8 +62,10 @@ public class AudioEngine {
         
         try {
             recorder.startRecording();
+            AppLog.add("AudioEngine: Начата запись с микрофона");
         } catch (Exception e) {
             Log.e(TAG, "startRecording error: " + e.getMessage());
+            AppLog.add("Ошибка записи: " + e.getMessage());
             isRecording = false;
             return;
         }
@@ -72,6 +78,14 @@ public class AudioEngine {
                 if (read > 0 && socket != null) {
                     g711.encode(buffer, 0, read, encoded);
                     socket.sendVoiceRaw(encoded);
+                    txCounter++;
+                    
+                    long now = System.currentTimeMillis();
+                    if (now - lastTxLogTime > 1000) {
+                        AppLog.add("→ Отправлено голосовых пакетов: " + txCounter);
+                        txCounter = 0;
+                        lastTxLogTime = now;
+                    }
                 }
             }
         }, "AudioRecordThread");
@@ -84,6 +98,7 @@ public class AudioEngine {
         if (recorder != null) {
             try { 
                 recorder.stop(); 
+                AppLog.add("AudioEngine: Запись остановлена");
             } catch (Exception e) {
                 Log.e(TAG, "stopRecording error: " + e.getMessage());
             }
@@ -95,6 +110,7 @@ public class AudioEngine {
         isPlaying = true;
         try {
             player.play();
+            AppLog.add("AudioEngine: Воспроизведение запущено");
         } catch (Exception e) {
             Log.e(TAG, "startPlaying error: " + e.getMessage());
         }
