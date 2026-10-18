@@ -1,4 +1,4 @@
-﻿name: Build adminPMR APK
+name: Build adminPMR APK
 on:
   push:
     branches: [ main, master ]
