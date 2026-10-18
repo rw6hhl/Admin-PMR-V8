@@ -19,13 +19,12 @@ import androidx.appcompat.app.AppCompatActivity;
 public class MainActivity extends AppCompatActivity {
     private SharedPreferences prefs;
     private TextView tvChannel, tvIndex, tvMode, tvReceive, tvSpeakingId, tvVersion;
-    private ImageView imgRed, imgGreen;
-    private Button btnMenu, btnUp, btnDown, btnSave1, btnSave2, btnSave3, btnSave4, btnSave5, btnPTT, btnSecretMode;
+    private ImageView imgRed;
+    private Button btnMenu, btnUp, btnDown, btnSave1, btnSave2, btnSave3, btnSave4, btnSave5, btnCallOrList, btnPTT, btnSecretMode;
     private boolean isAdminMode = false;
     private PowerManager.WakeLock wakeLock;
     private int currentChannel = 1;
 
-    // Принимаем ID говорящего из сервиса
     private BroadcastReceiver voiceReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -68,11 +67,11 @@ public class MainActivity extends AppCompatActivity {
         tvSpeakingId = findViewById(R.id.tvSpeakingId);
         tvVersion = findViewById(R.id.tvVersion);
         imgRed = findViewById(R.id.imageView);
-        imgGreen = findViewById(R.id.imageView2);
 
         btnMenu = findViewById(R.id.button4);
         btnUp = findViewById(R.id.button1);
         btnDown = findViewById(R.id.button2);
+        btnCallOrList = findViewById(R.id.button); // Кнопка CALL / LIST
         btnSave1 = findViewById(R.id.buttonsave1);
         btnSave2 = findViewById(R.id.buttonsave2);
         btnSave3 = findViewById(R.id.buttonsave3);
@@ -84,12 +83,14 @@ public class MainActivity extends AppCompatActivity {
 
     private void setupListeners() {
         btnMenu.setOnClickListener(v -> startActivity(new Intent(this, SettingsActivity.class)));
-        btnMenu.setOnLongClickListener(v -> {
+        
+        // Кнопка CALL или LIST
+        btnCallOrList.setOnClickListener(v -> {
             if (isAdminMode) {
                 startActivity(new Intent(this, ChanListActivity.class));
-                return true;
+            } else {
+                Toast.makeText(this, "Вызов (CALL)", Toast.LENGTH_SHORT).show();
             }
-            return false;
         });
 
         btnSecretMode.setOnClickListener(v -> {
@@ -131,7 +132,6 @@ public class MainActivity extends AppCompatActivity {
         btnSave4.setOnLongClickListener(v -> { savePreset(4); return true; });
         btnSave5.setOnLongClickListener(v -> { savePreset(5); return true; });
 
-        // PTT (Нажал - говоришь, отпустил - слушаешь)
         btnPTT.setOnTouchListener((v, event) -> {
             switch (event.getAction()) {
                 case MotionEvent.ACTION_DOWN:
@@ -183,8 +183,10 @@ public class MainActivity extends AppCompatActivity {
         
         if (isAdminMode) {
             tvChannel.setTextColor(getResources().getColor(R.color.active));
+            btnCallOrList.setText("LIST");
         } else {
             tvChannel.setTextColor(getResources().getColor(android.R.color.black));
+            btnCallOrList.setText("CALL");
         }
     }
 

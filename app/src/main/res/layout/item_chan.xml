@@ -7,28 +7,19 @@
     android:gravity="center_vertical">
 
     <TextView
-        android:id="@+id/tvChanId"
-        android:layout_width="60dp"
-        android:layout_height="wrap_content"
-        android:text="26001"
-        android:textColor="@color/colorButton"
-        android:textSize="16sp" />
-
-    <TextView
-        android:id="@+id/tvChanCall"
+        android:id="@+id/itemText"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:text="RW6HHL"
-        android:textColor="@color/colorButton"
-        android:textSize="16sp" />
+        android:text="26001 RW6HHL"
+        android:textColor="#FFFFFF"
+        android:textSize="20sp" />
 
-    <!-- Динамик (Индикатор / Кнопка бана) -->
-    <ImageView
-        android:id="@+id/imgSpeaker"
-        android:layout_width="32dp"
-        android:layout_height="32dp"
-        android:src="@drawable/wktpaint1ff"
-        android:background="@android:color/transparent"
-        android:contentDescription="Status" />
+    <Button
+        android:id="@+id/itemBtnBan"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:backgroundTint="#00FF00"
+        android:text=""
+        android:textColor="#000000" />
 </LinearLayout>

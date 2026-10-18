@@ -15,8 +15,10 @@ import androidx.core.app.NotificationCompat;
 
 public class PmrService extends Service {
     private static final String CHANNEL_ID = "PMR_Service_Channel";
-    private PmrSocket pmrSocket;
+    private static PmrSocket pmrSocket;
     private AudioEngine audioEngine;
+
+    public static PmrSocket getPmrSocket() { return pmrSocket; }
 
     private BroadcastReceiver controlReceiver = new BroadcastReceiver() {
         @Override
@@ -49,12 +51,8 @@ public class PmrService extends Service {
                 .build();
         startForeground(1, notification);
 
-        // Инициализация движка звука
         audioEngine = new AudioEngine(null);
-        
-        // Инициализация сокета (слушаем входящий голос)
         pmrSocket = new PmrSocket(this, clientId -> {
-            // Отправляем ID говорящего в MainActivity
             Intent voiceIntent = new Intent("PMR_VOICE_RECEIVED");
             voiceIntent.putExtra("clientId", clientId);
             sendBroadcast(voiceIntent);
@@ -78,6 +76,7 @@ public class PmrService extends Service {
             audioEngine.stopRecording();
         }
         if (pmrSocket != null) pmrSocket.stop();
+        pmrSocket = null;
     }
 
     @Nullable

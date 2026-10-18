@@ -7,8 +7,8 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
+import java.util.ArrayList;
+import java.util.List;
 
 public class PmrSocket {
     private static final String TAG = "PmrSocket";
@@ -32,6 +32,11 @@ public class PmrSocket {
     }
     private OnVoiceListener voiceListener;
 
+    public interface OnChanListListener {
+        void onChanListReceived(List<Integer> ids);
+    }
+    private static OnChanListListener chanListListener;
+
     public PmrSocket(Context context, OnVoiceListener listener) {
         this.voiceListener = listener;
         this.prefs = context.getSharedPreferences("pmr_prefs", Context.MODE_PRIVATE);
@@ -43,6 +48,10 @@ public class PmrSocket {
         } catch (Exception e) {
             Log.e(TAG, "Error init socket: " + e.getMessage());
         }
+    }
+
+    public static void setChanListListener(OnChanListListener listener) {
+        chanListListener = listener;
     }
 
     private void loadSettings() {
@@ -86,22 +95,16 @@ public class PmrSocket {
             int cikl = 0;
             while (isRunning) {
                 try {
-                    // cmd=7 (секрет) или cmd=0
                     byte[] ping = new byte[4];
-                    ping[0] = 7; // command
-                    ping[1] = 13; // kanal
-                    ping[2] = 0; // client low
-                    ping[3] = 0; // client high
+                    ping[0] = 7; ping[1] = 13; ping[2] = 0; ping[3] = 0;
                     socket.send(new DatagramPacket(ping, 4, serverAddr, portPrd + kanalPrd));
                     
                     Thread.sleep(1000);
                     cikl++;
                     
                     if (cikl > 3) {
-                        // cmd=0, Priznak_pmr в поле client
-                        byte[] priznak = new byte[6]; // 4 байта заголовка + 2 байта данных
-                        priznak[0] = 0; // command
-                        priznak[1] = 13;
+                        byte[] priznak = new byte[6];
+                        priznak[0] = 0; priznak[1] = 13;
                         priznak[2] = (byte) (priznakPmr & 0xFF);
                         priznak[3] = (byte) ((priznakPmr >> 8) & 0xFF);
                         socket.send(new DatagramPacket(priznak, 6, serverAddr, portPrd + kanalPrd));
@@ -119,30 +122,46 @@ public class PmrSocket {
         if (data.length < 4) return;
         int command = data[0] & 0xFF;
         int kanal = data[1] & 0xFF;
-        int client = (data[2] & 0xFF) | ((data[3] & 0xFF) << 8); // Little Endian
+        int client = (data[2] & 0xFF) | ((data[3] & 0xFF) << 8);
 
         if (kanal != kanalPrd && kanalPrd != 0) return;
 
-        if (command == 22 && data.length == 324) { // Голос
+        if (command == 22 && data.length == 324) {
             if (audioEngine != null) audioEngine.pushToRingBuffer(data);
             if (voiceListener != null) voiceListener.onVoiceReceived(client);
-        } else if (command == 234) { // Список
+        } else if (command == 234) {
             parseChanList(data);
         }
     }
 
     private void parseChanList(byte[] data) {
+        List<Integer> ids = new ArrayList<>();
         int count = (data.length - 4) / 13;
         for (int i = 0; i < count; i++) {
             int offset = 4 + (i * 13);
             int id = (data[offset + 4] & 0xFF) | ((data[offset + 5] & 0xFF) << 8);
-            Log.d(TAG, "List User: " + id);
+            ids.add(id);
+        }
+        if (chanListListener != null) {
+            chanListListener.onChanListReceived(ids);
+        }
+    }
+
+    public void requestChanList() {
+        if (socket == null || socket.isClosed()) return;
+        try {
+            byte[] cmd = new byte[4];
+            cmd[0] = (byte) 234;
+            cmd[1] = 13;
+            socket.send(new DatagramPacket(cmd, 4, serverAddr, portPrd + kanalPrd));
+        } catch (IOException e) {
+            Log.e(TAG, "Request list error");
         }
     }
 
     public void sendBan(int targetId) {
         byte[] ban = new byte[4];
-        ban[0] = (byte) 222; // ИСПРАВЛЕНО: явное приведение типа
+        ban[0] = (byte) 222;
         ban[1] = 13;
         ban[2] = (byte) (targetId & 0xFF);
         ban[3] = (byte) ((targetId >> 8) & 0xFF);
@@ -150,6 +169,19 @@ public class PmrSocket {
             socket.send(new DatagramPacket(ban, 4, serverAddr, portPrd + kanalPrd));
         } catch (IOException e) {
             Log.e(TAG, "Ban error");
+        }
+    }
+
+    public void sendUnban(int targetId) {
+        byte[] unban = new byte[4];
+        unban[0] = (byte) 222; // На сервере PMR разбан обычно делается повторной отправкой 222
+        unban[1] = 13;
+        unban[2] = (byte) (targetId & 0xFF);
+        unban[3] = (byte) ((targetId >> 8) & 0xFF);
+        try {
+            socket.send(new DatagramPacket(unban, 4, serverAddr, portPrd + kanalPrd));
+        } catch (IOException e) {
+            Log.e(TAG, "Unban error");
         }
     }
 

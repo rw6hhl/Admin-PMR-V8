@@ -1,27 +1,26 @@
 package com.pmr.admin;
 
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
-import android.widget.Button;
+import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ChanListActivity extends AppCompatActivity {
+public class ChanListActivity extends AppCompatActivity implements PmrSocket.OnChanListListener {
 
     public static class User {
-        public String id;
+        public int id;
         public String call;
-        public int status; // 0 = в сети (желтый), 1 = говорит (зеленый), 2 = забанен (красный)
-        public User(String id, String call, int status) { this.id = id; this.call = call; this.status = status; }
+        public boolean isBanned;
+        public User(int id, String call, boolean isBanned) { 
+            this.id = id; this.call = call; this.isBanned = isBanned; 
+        }
     }
 
-    private final List<User> users = new ArrayList<>();
+    private List<User> users = new ArrayList<>();
     private ChanAdapter adapter;
-    private Button btnRefresh;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -30,20 +29,49 @@ public class ChanListActivity extends AppCompatActivity {
 
         RecyclerView recyclerView = findViewById(R.id.recyclerChanList);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        btnRefresh = findViewById(R.id.btnRefreshList); // Добавим кнопку в layout позже
-
-        // Тестовые данные (пока PmrSocket не парсит список)
-        users.add(new User("26001", "RW6HHL", 1));
-        users.add(new User("26002", "R1ABC", 0));
-        users.add(new User("26003", "R2XYZ", 2));
-
-        adapter = new ChanAdapter(users, (user, position) -> {
-            if (user.status != 2) {
-                user.status = 2; 
-                // Здесь будет отправка cmd=222 через PmrSocket
+        
+        adapter = new ChanAdapter(this, users, (user, position) -> {
+            // Отправляем бан/разбан
+            if (PmrService.getPmrSocket() != null) {
+                if (!user.isBanned) {
+                    PmrService.getPmrSocket().sendBan(user.id);
+                    user.isBanned = true;
+                    Toast.makeText(this, "Бан: " + user.id, Toast.LENGTH_SHORT).show();
+                } else {
+                    // Разбан (команда 221 с ID)
+                    PmrService.getPmrSocket().sendUnban(user.id);
+                    user.isBanned = false;
+                    Toast.makeText(this, "Разбан: " + user.id, Toast.LENGTH_SHORT).show();
+                }
                 adapter.notifyItemChanged(position);
             }
         });
         recyclerView.setAdapter(adapter);
+
+        // Подписываемся на обновления списка
+        PmrService.setChanListListener(this);
+        
+        // Запрашиваем список
+        if (PmrService.getPmrSocket() != null) {
+            PmrService.getPmrSocket().requestChanList();
+        }
+    }
+
+    @Override
+    public void onChanListReceived(List<Integer> ids) {
+        runOnUiThread(() -> {
+            users.clear();
+            // Заглушка для позывных (пока не парсим list.txt внутри приложения)
+            for (int id : ids) {
+                users.add(new User(id, "Абонент", false));
+            }
+            adapter.notifyDataSetChanged();
+        });
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        PmrService.setChanListListener(null);
     }
 }
