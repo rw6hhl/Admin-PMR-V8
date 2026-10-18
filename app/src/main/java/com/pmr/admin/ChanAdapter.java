@@ -39,10 +39,11 @@ public class ChanAdapter extends RecyclerView.Adapter<ChanAdapter.VH> {
         ChanListActivity.User user = users.get(position);
         h.itemText.setText(String.format("%05d %s", user.id, user.call));
         
+        // ИСПРАВЛЕНО: используем setBackgroundColor вместо setBackgroundTintList
         if (user.isBanned) {
-            h.itemBtnBan.setBackgroundTintList(ContextCompat.getColorStateList(ctx, android.R.color.holo_red_dark));
+            h.itemBtnBan.setBackgroundColor(ContextCompat.getColor(ctx, android.R.color.holo_red_dark));
         } else {
-            h.itemBtnBan.setBackgroundTintList(ContextCompat.getColorStateList(ctx, android.R.color.holo_green_dark));
+            h.itemBtnBan.setBackgroundColor(ContextCompat.getColor(ctx, android.R.color.holo_green_dark));
         }
         
         h.itemBtnBan.setOnClickListener(v -> listener.onBanClick(user, position));

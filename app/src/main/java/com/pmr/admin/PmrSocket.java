@@ -24,7 +24,7 @@ public class PmrSocket {
     private int priznakPmr = 26010;
     private int myMailIndex = 35915;
     private int portPrm = 5323;
-    private int portPrd = 15000; // ИСПРАВЛЕНО: порт 15000
+    private int portPrd = 15000;
     private int kanalPrd = 13;
 
     public interface OnVoiceListener {
@@ -210,6 +210,7 @@ public class PmrSocket {
             int dataLen = Math.min(encodedG711.length, 320);
             System.arraycopy(encodedG711, 0, packet, 4, dataLen);
             socket.send(new DatagramPacket(packet, 324, serverAddr, portPrd + kanalPrd));
+            // Не логируем голос, чтобы не забить лог
         } catch (IOException e) {
             AppLog.add("Ошибка отправки голоса: " + e.getMessage());
         }
