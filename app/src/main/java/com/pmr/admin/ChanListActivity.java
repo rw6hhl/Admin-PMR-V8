@@ -42,6 +42,8 @@ public class ChanListActivity extends AppCompatActivity implements PmrSocket.OnC
                     Toast.makeText(this, "Разбан: " + user.id, Toast.LENGTH_SHORT).show();
                 }
                 adapter.notifyItemChanged(position);
+            } else {
+                Toast.makeText(this, "Сервис не запущен", Toast.LENGTH_SHORT).show();
             }
         });
         recyclerView.setAdapter(adapter);
@@ -57,7 +59,6 @@ public class ChanListActivity extends AppCompatActivity implements PmrSocket.OnC
 
     @Override
     public void onChanListReceived(List<Integer> ids) {
-        // ИСПРАВЛЕНО: обновляем интерфейс в главном потоке
         runOnUiThread(() -> {
             if (adapter == null) return;
             users.clear();

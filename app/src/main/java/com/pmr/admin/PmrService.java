@@ -21,7 +21,6 @@ public class PmrService extends Service {
 
     public static PmrSocket getPmrSocket() { return pmrSocket; }
 
-    // Позволяет Activity подписаться на обновления списка
     public static void setChanListListener(PmrSocket.OnChanListListener listener) {
         PmrSocket.setChanListListener(listener);
     }
@@ -57,15 +56,18 @@ public class PmrService extends Service {
                 .build();
         startForeground(1, notification);
 
-        audioEngine = new AudioEngine(null);
+        // 1. Создаем сокет
         pmrSocket = new PmrSocket(this, clientId -> {
             Intent voiceIntent = new Intent("PMR_VOICE_RECEIVED");
             voiceIntent.putExtra("clientId", clientId);
             sendBroadcast(voiceIntent);
         });
         
+        // 2. Создаем движок, передавая ему контекст и сокет
+        audioEngine = new AudioEngine(this, pmrSocket);
+        
+        // 3. Связываем их
         pmrSocket.setAudioEngine(audioEngine);
-        audioEngine.setSocket(pmrSocket);
         
         pmrSocket.start();
         audioEngine.startPlaying();

@@ -93,7 +93,6 @@ public class PmrSocket {
         
         startPingThread();
         
-        // Автоматический запрос списка через 2 секунды
         new Thread(() -> {
             try { Thread.sleep(2000); } catch (InterruptedException ignored) {}
             requestChanList();
@@ -192,6 +191,12 @@ public class PmrSocket {
         } catch (IOException e) {
             AppLog.add("Ошибка бана: " + e.getMessage());
         }
+    }
+
+    public void sendUnban(int targetId) {
+        // На сервере PMR разбан обычно делается повторной отправкой команды 222
+        sendBan(targetId);
+        AppLog.add("→ Отправлено: РАЗБАН (повтор 222) ID=" + targetId);
     }
 
     public void stop() {
