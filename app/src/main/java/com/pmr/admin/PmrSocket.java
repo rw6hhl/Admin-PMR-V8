@@ -21,10 +21,10 @@ public class PmrSocket {
     private AudioEngine audioEngine;
     
     private SharedPreferences prefs;
-    private int priznakPmr = 26001;
-    private int myMailIndex = 111111;
+    private int priznakPmr = 26010;
+    private int myMailIndex = 35915;
     private int portPrm = 5323;
-    private int portPrd = 16000;
+    private int portPrd = 15000; // ИСПРАВЛЕНО: порт 15000
     private int kanalPrd = 13;
 
     public interface OnVoiceListener {
@@ -42,10 +42,12 @@ public class PmrSocket {
         this.prefs = context.getSharedPreferences("pmr_prefs", Context.MODE_PRIVATE);
         loadSettings();
         try {
-            this.serverAddr = InetAddress.getByName(prefs.getString("ip_server", "185.221.154.39"));
+            String ip = prefs.getString("ip_server", "109.172.7.155");
+            if (ip == null || ip.trim().isEmpty()) ip = "109.172.7.155";
+            this.serverAddr = InetAddress.getByName(ip);
             this.socket = new DatagramSocket(portPrm);
             this.socket.setSoTimeout(1000);
-            AppLog.add("Сокет открыт на порту " + portPrm);
+            AppLog.add("Сокет открыт на порту " + portPrm + ", IP=" + ip);
         } catch (Exception e) {
             Log.e(TAG, "Error init socket: " + e.getMessage());
             AppLog.add("Ошибка сокета: " + e.getMessage());
@@ -57,16 +59,15 @@ public class PmrSocket {
     }
 
     private void loadSettings() {
-        priznakPmr = Integer.parseInt(prefs.getString("Priznak_pmr", "26001"));
-        myMailIndex = Integer.parseInt(prefs.getString("MyMailIndex", "111111"));
+        priznakPmr = Integer.parseInt(prefs.getString("Priznak_pmr", "26010"));
+        myMailIndex = Integer.parseInt(prefs.getString("MyMailIndex", "035915"));
         portPrm = prefs.getInt("PORT_prm", 5323);
-        portPrd = prefs.getInt("PORT_prd", 16000);
+        portPrd = prefs.getInt("PORT_prd", 15000);
         
         int myPChannel = prefs.getInt("current_channel", 1);
         if (myPChannel == 0) kanalPrd = 0;
         else kanalPrd = ((myMailIndex & 0xF) * 8) + myPChannel;
-        AppLog.add("Загружены настройки: IP=" + prefs.getString("ip_server", "") 
-                + ", ID=" + priznakPmr + ", Канал=" + kanalPrd);
+        AppLog.add("Настройки: ID=" + priznakPmr + ", Mail=" + myMailIndex + ", Канал=" + kanalPrd + ", Порт=" + portPrd);
     }
 
     public void setAudioEngine(AudioEngine audioEngine) {
@@ -76,7 +77,6 @@ public class PmrSocket {
     public void start() {
         if (isRunning) return;
         isRunning = true;
-        AppLog.add("Запуск потоков приема/отправки");
         
         receiveThread = new Thread(() -> {
             byte[] buffer = new byte[2048];
@@ -103,7 +103,6 @@ public class PmrSocket {
                     byte[] ping = new byte[4];
                     ping[0] = 7; ping[1] = 13; ping[2] = 0; ping[3] = 0;
                     socket.send(new DatagramPacket(ping, 4, serverAddr, portPrd + kanalPrd));
-                    // Не логируем каждый пинг, чтобы не засорять лог
                     
                     Thread.sleep(1000);
                     cikl++;
@@ -117,7 +116,7 @@ public class PmrSocket {
                         cikl = 0;
                     }
                 } catch (Exception e) {
-                    AppLog.add("Ошибка пинга: " + e.getMessage());
+                    Log.e(TAG, "Ping error: " + e.getMessage());
                 }
             }
         }, "PMR-PingThread");
@@ -211,7 +210,6 @@ public class PmrSocket {
             int dataLen = Math.min(encodedG711.length, 320);
             System.arraycopy(encodedG711, 0, packet, 4, dataLen);
             socket.send(new DatagramPacket(packet, 324, serverAddr, portPrd + kanalPrd));
-            // Голос не логируем, чтобы не забивать память
         } catch (IOException e) {
             AppLog.add("Ошибка отправки голоса: " + e.getMessage());
         }

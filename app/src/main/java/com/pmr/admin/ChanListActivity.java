@@ -31,14 +31,12 @@ public class ChanListActivity extends AppCompatActivity implements PmrSocket.OnC
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         
         adapter = new ChanAdapter(this, users, (user, position) -> {
-            // Отправляем бан/разбан
             if (PmrService.getPmrSocket() != null) {
                 if (!user.isBanned) {
                     PmrService.getPmrSocket().sendBan(user.id);
                     user.isBanned = true;
                     Toast.makeText(this, "Бан: " + user.id, Toast.LENGTH_SHORT).show();
                 } else {
-                    // Разбан (команда 221 с ID)
                     PmrService.getPmrSocket().sendUnban(user.id);
                     user.isBanned = false;
                     Toast.makeText(this, "Разбан: " + user.id, Toast.LENGTH_SHORT).show();
@@ -48,24 +46,26 @@ public class ChanListActivity extends AppCompatActivity implements PmrSocket.OnC
         });
         recyclerView.setAdapter(adapter);
 
-        // Подписываемся на обновления списка
         PmrService.setChanListListener(this);
         
-        // Запрашиваем список
         if (PmrService.getPmrSocket() != null) {
             PmrService.getPmrSocket().requestChanList();
+        } else {
+            Toast.makeText(this, "Сервис еще не запущен", Toast.LENGTH_SHORT).show();
         }
     }
 
     @Override
     public void onChanListReceived(List<Integer> ids) {
+        // ИСПРАВЛЕНО: обновляем интерфейс в главном потоке
         runOnUiThread(() -> {
+            if (adapter == null) return;
             users.clear();
-            // Заглушка для позывных (пока не парсим list.txt внутри приложения)
             for (int id : ids) {
                 users.add(new User(id, "Абонент", false));
             }
             adapter.notifyDataSetChanged();
+            AppLog.add("Список обновлен, абонентов: " + users.size());
         });
     }
 

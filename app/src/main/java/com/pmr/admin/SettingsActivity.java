@@ -36,11 +36,12 @@ public class SettingsActivity extends AppCompatActivity {
         btnChanList = findViewById(R.id.btnChanList);
         btnLogs = findViewById(R.id.btnLogs);
 
-        editMailIndex.setText(prefs.getString("MyMailIndex", "111111"));
-        editPriznak.setText(prefs.getString("Priznak_pmr", "26001"));
+        // ИСПРАВЛЕНО: значения по умолчанию
+        editMailIndex.setText(prefs.getString("MyMailIndex", "035915"));
+        editPriznak.setText(prefs.getString("Priznak_pmr", "26010"));
         editPortPrm.setText(String.valueOf(prefs.getInt("PORT_prm", 5323)));
-        editPortPrd.setText(String.valueOf(prefs.getInt("PORT_prd", 16000)));
-        editIp.setText(prefs.getString("ip_server", "185.221.154.39"));
+        editPortPrd.setText(String.valueOf(prefs.getInt("PORT_prd", 15000)));
+        editIp.setText(prefs.getString("ip_server", "109.172.7.155"));
         switchSimplex.setChecked(prefs.getBoolean("simplex", false));
 
         if (prefs.getBoolean("is_admin_mode", false)) {
@@ -54,8 +55,6 @@ public class SettingsActivity extends AppCompatActivity {
         findViewById(R.id.btnCodecDialog).setOnClickListener(v -> showCodecDialog());
         
         btnChanList.setOnClickListener(v -> startActivity(new Intent(this, ChanListActivity.class)));
-        
-        // Открытие логов
         btnLogs.setOnClickListener(v -> startActivity(new Intent(this, LogActivity.class)));
 
         findViewById(R.id.btnSaveSettings).setOnClickListener(v -> saveSettings());
