@@ -14,10 +14,9 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:layout_marginBottom="16dp">
-
+            android:layout_marginBottom="16dp"
+            android:orientation="horizontal">
             <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
@@ -25,188 +24,159 @@
                 android:text="@string/simpl"
                 android:textColor="@color/colortextabout"
                 android:textSize="18sp" />
-
             <Switch
                 android:id="@+id/switchSimplex"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content" />
         </LinearLayout>
 
-        <!-- Индекс -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:layout_marginBottom="16dp">
-
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/index"
-                android:textColor="@color/colortextabout"
-                android:textSize="18sp" />
-
-            <EditText
-                android:id="@+id/editIndex"
-                android:layout_width="100dp"
-                android:layout_height="wrap_content"
-                android:textColor="@color/colortextabout"
-                android:textSize="18sp"
-                android:backgroundTint="@color/colortextabout"
-                android:inputType="number"
-                android:text="111111" />
-        </LinearLayout>
-
-        <!-- Заголовок Настройка сервера -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="16dp"
+            android:gravity="center"
             android:text="Настройка сервера"
             android:textColor="@color/colortextabout"
-            android:textSize="20sp"
-            android:gravity="center"
-            android:layout_marginTop="16dp"
-            android:layout_marginBottom="16dp" />
+            android:textSize="20sp" />
 
-        <!-- IP адрес -->
+        <!-- MyMailIndex -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:layout_marginBottom="16dp">
-
+            android:layout_marginBottom="16dp"
+            android:orientation="horizontal">
             <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="@string/ip"
+                android:text="MyMailIndex ="
                 android:textColor="@color/colortextabout"
                 android:textSize="18sp" />
-
             <EditText
-                android:id="@+id/editIp"
-                android:layout_width="180dp"
+                android:id="@+id/editMailIndex"
+                android:layout_width="120dp"
                 android:layout_height="wrap_content"
-                android:textColor="@color/colortextabout"
-                android:textSize="18sp"
-                android:backgroundTint="@color/colortextabout"
-                android:inputType="text"
-                android:text="185.221.154.39" />
-        </LinearLayout>
-
-        <!-- Порт -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:layout_marginBottom="24dp">
-
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/port"
-                android:textColor="@color/colortextabout"
-                android:textSize="18sp" />
-
-            <EditText
-                android:id="@+id/editPort"
-                android:layout_width="100dp"
-                android:layout_height="wrap_content"
-                android:textColor="@color/colortextabout"
-                android:textSize="18sp"
                 android:backgroundTint="@color/colortextabout"
                 android:inputType="number"
-                android:text="16000" />
+                android:textColor="@color/colortextabout"
+                android:textSize="18sp" />
         </LinearLayout>
 
-        <!-- Заголовок Режим передачи -->
-        <TextView
+        <!-- Priznak_pmr -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/set"
-            android:textColor="@color/colortextabout"
-            android:textSize="20sp"
-            android:gravity="center"
-            android:layout_marginBottom="16dp" />
+            android:gravity="center_vertical"
+            android:layout_marginBottom="16dp"
+            android:orientation="horizontal">
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Priznak_pmr ="
+                android:textColor="@color/colortextabout"
+                android:textSize="18sp" />
+            <EditText
+                android:id="@+id/editPriznak"
+                android:layout_width="120dp"
+                android:layout_height="wrap_content"
+                android:backgroundTint="@color/colortextabout"
+                android:inputType="number"
+                android:maxLength="5"
+                android:textColor="@color/colortextabout"
+                android:textSize="18sp" />
+        </LinearLayout>
 
-        <!-- Радиогруппа кодеков -->
-        <RadioGroup
-            android:id="@+id/radioGroupCodec"
+        <!-- PORT_prm -->
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
-
-            <RadioButton
-                android:id="@+id/rbCodec0"
-                android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="16dp"
+            android:orientation="horizontal">
+            <TextView
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:text="@string/rej0"
+                android:layout_weight="1"
+                android:text="PORT_prm ="
                 android:textColor="@color/colortextabout"
-                android:buttonTint="@color/colortextabout" />
-
-            <RadioButton
-                android:id="@+id/rbCodec1"
-                android:layout_width="match_parent"
+                android:textSize="18sp" />
+            <EditText
+                android:id="@+id/editPortPrm"
+                android:layout_width="120dp"
                 android:layout_height="wrap_content"
-                android:text="@string/rej1"
+                android:backgroundTint="@color/colortextabout"
+                android:inputType="number"
                 android:textColor="@color/colortextabout"
-                android:buttonTint="@color/colortextabout" />
+                android:textSize="18sp" />
+        </LinearLayout>
 
-            <RadioButton
-                android:id="@+id/rbCodec2"
-                android:layout_width="match_parent"
+        <!-- PORT_prd -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="16dp"
+            android:orientation="horizontal">
+            <TextView
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:text="@string/rej2"
+                android:layout_weight="1"
+                android:text="PORT_prd ="
                 android:textColor="@color/colortextabout"
-                android:buttonTint="@color/colortextabout" />
-
-            <RadioButton
-                android:id="@+id/rbCodec3"
-                android:layout_width="match_parent"
+                android:textSize="18sp" />
+            <EditText
+                android:id="@+id/editPortPrd"
+                android:layout_width="120dp"
                 android:layout_height="wrap_content"
-                android:text="@string/rej3"
+                android:backgroundTint="@color/colortextabout"
+                android:inputType="number"
                 android:textColor="@color/colortextabout"
-                android:buttonTint="@color/colortextabout"
-                android:checked="true" />
+                android:textSize="18sp" />
+        </LinearLayout>
 
-            <RadioButton
-                android:id="@+id/rbCodec4"
-                android:layout_width="match_parent"
+        <!-- ip_server -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="24dp"
+            android:orientation="horizontal">
+            <TextView
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:text="@string/rej4"
+                android:layout_weight="1"
+                android:text="ip_server ="
                 android:textColor="@color/colortextabout"
-                android:buttonTint="@color/colortextabout" />
-
-            <RadioButton
-                android:id="@+id/rbCodec5"
-                android:layout_width="match_parent"
+                android:textSize="18sp" />
+            <EditText
+                android:id="@+id/editIp"
+                android:layout_width="150dp"
                 android:layout_height="wrap_content"
-                android:text="@string/rej5"
+                android:backgroundTint="@color/colortextabout"
+                android:inputType="text"
                 android:textColor="@color/colortextabout"
-                android:buttonTint="@color/colortextabout" />
+                android:textSize="18sp" />
+        </LinearLayout>
 
-            <RadioButton
-                android:id="@+id/rbCodec6"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/rej6"
-                android:textColor="@color/colortextabout"
-                android:buttonTint="@color/colortextabout" />
-        </RadioGroup>
+        <!-- Режим передачи (Кнопка, скрывающая кодеки) -->
+        <Button
+            android:id="@+id/btnCodecDialog"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            android:background="@drawable/roundshapebtn"
+            android:text="Режим передачи"
+            android:textColor="@color/colorButton" />
 
-        <!-- Кнопка Сохранить -->
         <Button
             android:id="@+id/btnSaveSettings"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
             android:background="@drawable/roundshapebtn"
-            android:text="СОХРАНИТЬ"
+            android:text="СОХРАНИТЬ И ВЫЙТИ"
             android:textColor="@color/colorButton" />
-
     </LinearLayout>
 </ScrollView>
