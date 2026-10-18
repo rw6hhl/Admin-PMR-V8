@@ -8,6 +8,7 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.PowerManager;
 import android.view.MotionEvent;
 import android.view.View;
@@ -63,8 +64,11 @@ public class MainActivity extends AppCompatActivity {
         setupListeners();
         updateUI();
         
-        Intent serviceIntent = new Intent(this, PmrService.class);
-        startService(serviceIntent);
+        // Запуск сервиса с задержкой 500мс (чтобы разрешение успело примениться)
+        new Handler().postDelayed(() -> {
+            Intent serviceIntent = new Intent(this, PmrService.class);
+            startService(serviceIntent);
+        }, 500);
     }
 
     private void requestMicPermission() {
@@ -79,6 +83,10 @@ public class MainActivity extends AppCompatActivity {
         if (requestCode == REQ_MIC) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 AppLog.add("Разрешение на микрофон получено");
+                // Перезапускаем сервис, если разрешение получено после старта
+                Intent serviceIntent = new Intent(this, PmrService.class);
+                stopService(serviceIntent);
+                startService(serviceIntent);
             } else {
                 AppLog.add("ОШИБКА: Разрешение на микрофон отклонено!");
                 Toast.makeText(this, "Без микрофона передача не работает!", Toast.LENGTH_LONG).show();

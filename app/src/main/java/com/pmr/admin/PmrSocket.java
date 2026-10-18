@@ -42,6 +42,7 @@ public class PmrSocket {
         this.prefs = context.getSharedPreferences("pmr_prefs", Context.MODE_PRIVATE);
         loadSettings();
         try {
+            // ПРИМЕНЕН IP ИЗ V4.2
             this.serverAddr = InetAddress.getByName("185.221.154.39");
             this.socket = new DatagramSocket(portPrm);
             this.socket.setSoTimeout(1000);
