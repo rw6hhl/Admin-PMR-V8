@@ -48,9 +48,21 @@ public class AudioEngine {
     }
 
     public void startRecording() {
-        if (recorder == null || isRecording) return;
+        // ЗАЩИТА ОТ ВЫЛЕТА: если рекордер не создан, выходим
+        if (recorder == null) {
+            Log.e(TAG, "startRecording: recorder is null!");
+            return;
+        }
+        if (isRecording) return;
         isRecording = true;
-        recorder.startRecording();
+        
+        try {
+            recorder.startRecording();
+        } catch (Exception e) {
+            Log.e(TAG, "startRecording error: " + e.getMessage());
+            isRecording = false;
+            return;
+        }
 
         recordThread = new Thread(() -> {
             byte[] buffer = new byte[BUFFER_SIZE * 2];
@@ -70,14 +82,22 @@ public class AudioEngine {
         if (!isRecording) return;
         isRecording = false;
         if (recorder != null) {
-            try { recorder.stop(); } catch (Exception ignored) {}
+            try { 
+                recorder.stop(); 
+            } catch (Exception e) {
+                Log.e(TAG, "stopRecording error: " + e.getMessage());
+            }
         }
     }
 
     public void startPlaying() {
         if (player == null || isPlaying) return;
         isPlaying = true;
-        player.play();
+        try {
+            player.play();
+        } catch (Exception e) {
+            Log.e(TAG, "startPlaying error: " + e.getMessage());
+        }
 
         playThread = new Thread(() -> {
             byte[] pcmData = new byte[BUFFER_SIZE * 2];
@@ -88,7 +108,9 @@ public class AudioEngine {
                         ringReadIdx = (ringReadIdx + 1) % 100;
                         ringCount--;
                         g711.decode(packet, 4, 320, pcmData);
-                        player.write(pcmData, 0, pcmData.length);
+                        if (player != null) {
+                            player.write(pcmData, 0, pcmData.length);
+                        }
                     }
                 }
                 try { Thread.sleep(10); } catch (InterruptedException ignored) {}
