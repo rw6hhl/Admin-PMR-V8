@@ -99,7 +99,7 @@ public class PmrSocket {
                     
                     if (cikl > 3) {
                         // cmd=0, Priznak_pmr в поле client
-                        byte[] priznak = new byte[6]; // 4 байта заголовка + 2 байта данных (или 4+2)
+                        byte[] priznak = new byte[6]; // 4 байта заголовка + 2 байта данных
                         priznak[0] = 0; // command
                         priznak[1] = 13;
                         priznak[2] = (byte) (priznakPmr & 0xFF);
@@ -136,14 +136,13 @@ public class PmrSocket {
         for (int i = 0; i < count; i++) {
             int offset = 4 + (i * 13);
             int id = (data[offset + 4] & 0xFF) | ((data[offset + 5] & 0xFF) << 8);
-            // Здесь можно передать в UI через интерфейс, если нужно
             Log.d(TAG, "List User: " + id);
         }
     }
 
     public void sendBan(int targetId) {
         byte[] ban = new byte[4];
-        ban[0] = 222;
+        ban[0] = (byte) 222; // ИСПРАВЛЕНО: явное приведение типа
         ban[1] = 13;
         ban[2] = (byte) (targetId & 0xFF);
         ban[3] = (byte) ((targetId >> 8) & 0xFF);
