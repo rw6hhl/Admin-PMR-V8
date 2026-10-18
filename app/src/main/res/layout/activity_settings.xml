@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/colorback"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <!-- Симплекс -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="16dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/simpl"
+                android:textColor="@color/colortextabout"
+                android:textSize="18sp" />
+
+            <Switch
+                android:id="@+id/switchSimplex"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+        </LinearLayout>
+
+        <!-- Индекс -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="16dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/index"
+                android:textColor="@color/colortextabout"
+                android:textSize="18sp" />
+
+            <EditText
+                android:id="@+id/editIndex"
+                android:layout_width="100dp"
+                android:layout_height="wrap_content"
+                android:textColor="@color/colortextabout"
+                android:textSize="18sp"
+                android:backgroundTint="@color/colortextabout"
+                android:inputType="number"
+                android:text="111111" />
+        </LinearLayout>
+
+        <!-- Заголовок Настройка сервера -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Настройка сервера"
+            android:textColor="@color/colortextabout"
+            android:textSize="20sp"
+            android:gravity="center"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="16dp" />
+
+        <!-- IP адрес -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="16dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/ip"
+                android:textColor="@color/colortextabout"
+                android:textSize="18sp" />
+
+            <EditText
+                android:id="@+id/editIp"
+                android:layout_width="180dp"
+                android:layout_height="wrap_content"
+                android:textColor="@color/colortextabout"
+                android:textSize="18sp"
+                android:backgroundTint="@color/colortextabout"
+                android:inputType="text"
+                android:text="185.221.154.39" />
+        </LinearLayout>
+
+        <!-- Порт -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="24dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/port"
+                android:textColor="@color/colortextabout"
+                android:textSize="18sp" />
+
+            <EditText
+                android:id="@+id/editPort"
+                android:layout_width="100dp"
+                android:layout_height="wrap_content"
+                android:textColor="@color/colortextabout"
+                android:textSize="18sp"
+                android:backgroundTint="@color/colortextabout"
+                android:inputType="number"
+                android:text="16000" />
+        </LinearLayout>
+
+        <!-- Заголовок Режим передачи -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/set"
+            android:textColor="@color/colortextabout"
+            android:textSize="20sp"
+            android:gravity="center"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Радиогруппа кодеков -->
+        <RadioGroup
+            android:id="@+id/radioGroupCodec"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <RadioButton
+                android:id="@+id/rbCodec0"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/rej0"
+                android:textColor="@color/colortextabout"
+                android:buttonTint="@color/colortextabout" />
+
+            <RadioButton
+                android:id="@+id/rbCodec1"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/rej1"
+                android:textColor="@color/colortextabout"
+                android:buttonTint="@color/colortextabout" />
+
+            <RadioButton
+                android:id="@+id/rbCodec2"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/rej2"
+                android:textColor="@color/colortextabout"
+                android:buttonTint="@color/colortextabout" />
+
+            <RadioButton
+                android:id="@+id/rbCodec3"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/rej3"
+                android:textColor="@color/colortextabout"
+                android:buttonTint="@color/colortextabout"
+                android:checked="true" />
+
+            <RadioButton
+                android:id="@+id/rbCodec4"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/rej4"
+                android:textColor="@color/colortextabout"
+                android:buttonTint="@color/colortextabout" />
+
+            <RadioButton
+                android:id="@+id/rbCodec5"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/rej5"
+                android:textColor="@color/colortextabout"
+                android:buttonTint="@color/colortextabout" />
+
+            <RadioButton
+                android:id="@+id/rbCodec6"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/rej6"
+                android:textColor="@color/colortextabout"
+                android:buttonTint="@color/colortextabout" />
+        </RadioGroup>
+
+        <!-- Кнопка Сохранить -->
+        <Button
+            android:id="@+id/btnSaveSettings"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:background="@drawable/roundshapebtn"
+            android:text="СОХРАНИТЬ"
+            android:textColor="@color/colorButton" />
+
+    </LinearLayout>
+</ScrollView>
