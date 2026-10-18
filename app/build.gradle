@@ -10,10 +10,17 @@ android {
         applicationId "com.pmr.admin"
         minSdk 26
         targetSdk 34
-        versionCode 10
-        versionName "9.3"
+        versionCode 12
+        versionName "9.5"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    // Переименование APK
+    android.applicationVariants.all { variant ->
+        variant.outputs.all {
+            outputFileName = "app-v${variant.versionName}.apk"
+        }
     }
 
     buildTypes {

@@ -47,6 +47,25 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         
+        prefs = getSharedPreferences("pmr_prefs", MODE_PRIVATE);
+        
+        // ПРИНУДИТЕЛЬНЫЙ СБРОС НАСТРОЕК ПРИ СМЕНЕ ВЕРСИИ
+        String savedVersion = prefs.getString("app_version", "0");
+        if (!savedVersion.equals("9.5")) {
+            prefs.edit()
+                .putString("app_version", "9.5")
+                .putString("MyMailIndex", "26000")
+                .putString("Priznak_pmr", "51953")
+                .putInt("PORT_prm", 5254)
+                .putInt("PORT_prd", 16000)
+                .putString("ip_server", "185.221.154.39")
+                .putInt("current_channel", 1)
+                .putBoolean("simplex", false)
+                .putBoolean("is_admin_mode", false)
+                .apply();
+            AppLog.add("Настройки сброшены на предустановки (V9.5)");
+        }
+
         requestMicPermission();
 
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
@@ -56,7 +75,6 @@ public class MainActivity extends AppCompatActivity {
             wakeLock.acquire();
         }
 
-        prefs = getSharedPreferences("pmr_prefs", MODE_PRIVATE);
         currentChannel = prefs.getInt("current_channel", 1);
         isAdminMode = prefs.getBoolean("is_admin_mode", false);
 
@@ -64,7 +82,6 @@ public class MainActivity extends AppCompatActivity {
         setupListeners();
         updateUI();
         
-        // Запуск сервиса с задержкой 500мс (чтобы разрешение успело примениться)
         new Handler().postDelayed(() -> {
             Intent serviceIntent = new Intent(this, PmrService.class);
             startService(serviceIntent);
@@ -83,7 +100,6 @@ public class MainActivity extends AppCompatActivity {
         if (requestCode == REQ_MIC) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 AppLog.add("Разрешение на микрофон получено");
-                // Перезапускаем сервис, если разрешение получено после старта
                 Intent serviceIntent = new Intent(this, PmrService.class);
                 stopService(serviceIntent);
                 startService(serviceIntent);
