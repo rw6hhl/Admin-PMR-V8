@@ -12,6 +12,7 @@ import android.os.Build;
 import android.os.IBinder;
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
+import java.util.List;
 
 public class PmrService extends Service {
     private static final String CHANNEL_ID = "PMR_Service_Channel";
@@ -19,6 +20,11 @@ public class PmrService extends Service {
     private AudioEngine audioEngine;
 
     public static PmrSocket getPmrSocket() { return pmrSocket; }
+
+    // Позволяет Activity подписаться на обновления списка
+    public static void setChanListListener(PmrSocket.OnChanListListener listener) {
+        PmrSocket.setChanListListener(listener);
+    }
 
     private BroadcastReceiver controlReceiver = new BroadcastReceiver() {
         @Override
