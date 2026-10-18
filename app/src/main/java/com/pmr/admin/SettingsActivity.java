@@ -17,7 +17,7 @@ public class SettingsActivity extends AppCompatActivity {
     private EditText editMailIndex, editPriznak, editPortPrm, editPortPrd, editIp;
     private Switch switchSimplex;
     private LinearLayout layoutServerSettings;
-    private Button btnChanList;
+    private Button btnChanList, btnLogs;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,8 +34,8 @@ public class SettingsActivity extends AppCompatActivity {
         switchSimplex = findViewById(R.id.switchSimplex);
         layoutServerSettings = findViewById(R.id.layoutServerSettings);
         btnChanList = findViewById(R.id.btnChanList);
+        btnLogs = findViewById(R.id.btnLogs);
 
-        // Загрузка
         editMailIndex.setText(prefs.getString("MyMailIndex", "111111"));
         editPriznak.setText(prefs.getString("Priznak_pmr", "26001"));
         editPortPrm.setText(String.valueOf(prefs.getInt("PORT_prm", 5323)));
@@ -43,24 +43,20 @@ public class SettingsActivity extends AppCompatActivity {
         editIp.setText(prefs.getString("ip_server", "185.221.154.39"));
         switchSimplex.setChecked(prefs.getBoolean("simplex", false));
 
-        // Показываем кнопку "Список" только в режиме Админа
         if (prefs.getBoolean("is_admin_mode", false)) {
             btnChanList.setVisibility(View.VISIBLE);
         }
 
         findViewById(R.id.btnToggleServer).setOnClickListener(v -> {
-            if (layoutServerSettings.getVisibility() == View.GONE) {
-                layoutServerSettings.setVisibility(View.VISIBLE);
-            } else {
-                layoutServerSettings.setVisibility(View.GONE);
-            }
+            layoutServerSettings.setVisibility(layoutServerSettings.getVisibility() == View.GONE ? View.VISIBLE : View.GONE);
         });
 
         findViewById(R.id.btnCodecDialog).setOnClickListener(v -> showCodecDialog());
         
-        btnChanList.setOnClickListener(v -> {
-            startActivity(new Intent(this, ChanListActivity.class));
-        });
+        btnChanList.setOnClickListener(v -> startActivity(new Intent(this, ChanListActivity.class)));
+        
+        // Открытие логов
+        btnLogs.setOnClickListener(v -> startActivity(new Intent(this, LogActivity.class)));
 
         findViewById(R.id.btnSaveSettings).setOnClickListener(v -> saveSettings());
     }

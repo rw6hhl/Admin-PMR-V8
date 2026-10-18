@@ -38,7 +38,6 @@
             android:textColor="@color/colorButton"
             android:layout_marginBottom="16dp" />
 
-        <!-- Блок настроек сервера -->
         <LinearLayout
             android:id="@+id/layoutServerSettings"
             android:layout_width="match_parent"
@@ -180,7 +179,17 @@
             android:background="@drawable/roundshapebtn"
             android:text="Список"
             android:textColor="@color/colorButton"
-            android:visibility="gone" /> <!-- Скрыта по умолчанию -->
+            android:visibility="gone" />
+
+        <!-- Кнопка Логи -->
+        <Button
+            android:id="@+id/btnLogs"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:background="@drawable/roundshapebtn"
+            android:text="Логи"
+            android:textColor="@color/colorButton" />
 
         <Button
             android:id="@+id/btnSaveSettings"

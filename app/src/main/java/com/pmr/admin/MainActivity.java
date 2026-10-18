@@ -71,7 +71,7 @@ public class MainActivity extends AppCompatActivity {
         btnMenu = findViewById(R.id.button4);
         btnUp = findViewById(R.id.button1);
         btnDown = findViewById(R.id.button2);
-        btnCallOrList = findViewById(R.id.button); // Кнопка CALL / LIST
+        btnCallOrList = findViewById(R.id.button);
         btnSave1 = findViewById(R.id.buttonsave1);
         btnSave2 = findViewById(R.id.buttonsave2);
         btnSave3 = findViewById(R.id.buttonsave3);
@@ -84,7 +84,6 @@ public class MainActivity extends AppCompatActivity {
     private void setupListeners() {
         btnMenu.setOnClickListener(v -> startActivity(new Intent(this, SettingsActivity.class)));
         
-        // Кнопка CALL или LIST
         btnCallOrList.setOnClickListener(v -> {
             if (isAdminMode) {
                 startActivity(new Intent(this, ChanListActivity.class));
@@ -93,15 +92,12 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        // ВРЕМЕННО: вход в Админ без пароля
         btnSecretMode.setOnClickListener(v -> {
-            if (!isAdminMode) {
-                startActivity(new Intent(this, PasswordActivity.class));
-            } else {
-                isAdminMode = false;
-                prefs.edit().putBoolean("is_admin_mode", false).apply();
-                Toast.makeText(this, "Режим Клиента", Toast.LENGTH_SHORT).show();
-                updateUI();
-            }
+            isAdminMode = !isAdminMode;
+            prefs.edit().putBoolean("is_admin_mode", isAdminMode).apply();
+            Toast.makeText(this, isAdminMode ? "РЕЖИМ АДМИНА" : "РЕЖИМ КЛИЕНТА", Toast.LENGTH_SHORT).show();
+            updateUI();
         });
 
         btnUp.setOnClickListener(v -> {

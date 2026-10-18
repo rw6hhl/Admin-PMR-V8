@@ -45,8 +45,10 @@ public class PmrSocket {
             this.serverAddr = InetAddress.getByName(prefs.getString("ip_server", "185.221.154.39"));
             this.socket = new DatagramSocket(portPrm);
             this.socket.setSoTimeout(1000);
+            AppLog.add("Сокет открыт на порту " + portPrm);
         } catch (Exception e) {
             Log.e(TAG, "Error init socket: " + e.getMessage());
+            AppLog.add("Ошибка сокета: " + e.getMessage());
         }
     }
 
@@ -63,6 +65,8 @@ public class PmrSocket {
         int myPChannel = prefs.getInt("current_channel", 1);
         if (myPChannel == 0) kanalPrd = 0;
         else kanalPrd = ((myMailIndex & 0xF) * 8) + myPChannel;
+        AppLog.add("Загружены настройки: IP=" + prefs.getString("ip_server", "") 
+                + ", ID=" + priznakPmr + ", Канал=" + kanalPrd);
     }
 
     public void setAudioEngine(AudioEngine audioEngine) {
@@ -72,6 +76,7 @@ public class PmrSocket {
     public void start() {
         if (isRunning) return;
         isRunning = true;
+        AppLog.add("Запуск потоков приема/отправки");
         
         receiveThread = new Thread(() -> {
             byte[] buffer = new byte[2048];
@@ -98,6 +103,7 @@ public class PmrSocket {
                     byte[] ping = new byte[4];
                     ping[0] = 7; ping[1] = 13; ping[2] = 0; ping[3] = 0;
                     socket.send(new DatagramPacket(ping, 4, serverAddr, portPrd + kanalPrd));
+                    // Не логируем каждый пинг, чтобы не засорять лог
                     
                     Thread.sleep(1000);
                     cikl++;
@@ -111,7 +117,7 @@ public class PmrSocket {
                         cikl = 0;
                     }
                 } catch (Exception e) {
-                    Log.e(TAG, "Ping error: " + e.getMessage());
+                    AppLog.add("Ошибка пинга: " + e.getMessage());
                 }
             }
         }, "PMR-PingThread");
@@ -125,6 +131,10 @@ public class PmrSocket {
         int client = (data[2] & 0xFF) | ((data[3] & 0xFF) << 8);
 
         if (kanal != kanalPrd && kanalPrd != 0) return;
+
+        if (command != 22) {
+            AppLog.add("← Входящий: cmd=" + command + ", kanal=" + kanal + ", client=" + client + ", size=" + data.length);
+        }
 
         if (command == 22 && data.length == 324) {
             if (audioEngine != null) audioEngine.pushToRingBuffer(data);
@@ -151,58 +161,59 @@ public class PmrSocket {
         if (socket == null || socket.isClosed()) return;
         try {
             byte[] cmd = new byte[4];
-            cmd[0] = (byte) 234;
-            cmd[1] = 13;
+            cmd[0] = (byte) 234; cmd[1] = 13;
             socket.send(new DatagramPacket(cmd, 4, serverAddr, portPrd + kanalPrd));
+            AppLog.add("→ Отправлено: cmd=234 (запрос списка)");
         } catch (IOException e) {
-            Log.e(TAG, "Request list error");
+            AppLog.add("Ошибка отправки списка: " + e.getMessage());
         }
     }
 
     public void sendBan(int targetId) {
         byte[] ban = new byte[4];
-        ban[0] = (byte) 222;
-        ban[1] = 13;
+        ban[0] = (byte) 222; ban[1] = 13;
         ban[2] = (byte) (targetId & 0xFF);
         ban[3] = (byte) ((targetId >> 8) & 0xFF);
         try {
             socket.send(new DatagramPacket(ban, 4, serverAddr, portPrd + kanalPrd));
+            AppLog.add("→ Отправлено: БАН ID=" + targetId);
         } catch (IOException e) {
-            Log.e(TAG, "Ban error");
+            AppLog.add("Ошибка бана: " + e.getMessage());
         }
     }
 
     public void sendUnban(int targetId) {
         byte[] unban = new byte[4];
-        unban[0] = (byte) 222; // На сервере PMR разбан обычно делается повторной отправкой 222
-        unban[1] = 13;
+        unban[0] = (byte) 222; unban[1] = 13;
         unban[2] = (byte) (targetId & 0xFF);
         unban[3] = (byte) ((targetId >> 8) & 0xFF);
         try {
             socket.send(new DatagramPacket(unban, 4, serverAddr, portPrd + kanalPrd));
+            AppLog.add("→ Отправлено: РАЗБАН ID=" + targetId);
         } catch (IOException e) {
-            Log.e(TAG, "Unban error");
+            AppLog.add("Ошибка разбана: " + e.getMessage());
         }
     }
 
     public void stop() {
         isRunning = false;
         if (socket != null && !socket.isClosed()) socket.close();
+        AppLog.add("Работа сокета остановлена");
     }
 
     public void sendVoiceRaw(byte[] encodedG711) {
         if (socket == null || socket.isClosed()) return;
         try {
             byte[] packet = new byte[324];
-            packet[0] = 22;
-            packet[1] = (byte) kanalPrd;
+            packet[0] = 22; packet[1] = (byte) kanalPrd;
             packet[2] = (byte) (priznakPmr & 0xFF);
             packet[3] = (byte) ((priznakPmr >> 8) & 0xFF);
             int dataLen = Math.min(encodedG711.length, 320);
             System.arraycopy(encodedG711, 0, packet, 4, dataLen);
             socket.send(new DatagramPacket(packet, 324, serverAddr, portPrd + kanalPrd));
+            // Голос не логируем, чтобы не забивать память
         } catch (IOException e) {
-            Log.e(TAG, "Send voice error");
+            AppLog.add("Ошибка отправки голоса: " + e.getMessage());
         }
     }
 }

@@ -14,7 +14,6 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
 
-        <!-- Главный экран (без Splash) -->
         <activity android:name=".MainActivity"
             android:exported="true"
             android:screenOrientation="portrait">
@@ -27,6 +26,7 @@
         <activity android:name=".SettingsActivity" android:screenOrientation="portrait" />
         <activity android:name=".PasswordActivity" android:screenOrientation="portrait" />
         <activity android:name=".ChanListActivity" android:screenOrientation="portrait" />
+        <activity android:name=".LogActivity" android:screenOrientation="portrait" />
 
         <service android:name=".PmrService" android:foregroundServiceType="microphone" />
 
