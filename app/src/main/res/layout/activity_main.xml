@@ -10,15 +10,13 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:scaleType="fitXY"
-        android:contentDescription="@string/app_name"
         app:srcCompat="@drawable/wktpaint1ffwide" />
 
-    <!-- Экран (текст) -->
     <TextView
         android:id="@+id/textView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/one"
+        android:text="1"
         android:textColor="#000000"
         android:textSize="32sp"
         app:layout_constraintBottom_toBottomOf="@+id/imageView6"
@@ -44,11 +42,26 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
-        android:text="@string/dupl"
+        android:text="duplex"
         android:textColor="#000000"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textView4" />
+
+    <!-- Активный абонент (вместо In chanel) -->
+    <TextView
+        android:id="@+id/textView8"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="No receive"
+        android:textColor="#000000"
+        android:textSize="16sp"
+        app:layout_constraintBottom_toBottomOf="@+id/imageView6"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.3"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/imageView6"
+        app:layout_constraintVertical_bias="0.45" />
 
     <!-- Priznak_pmr говорящего (левый нижний угол) -->
     <TextView
@@ -65,35 +78,6 @@
         app:layout_constraintTop_toTopOf="@+id/imageView6"
         app:layout_constraintVertical_bias="0.9" />
 
-    <!-- In chanel -->
-    <TextView
-        android:id="@+id/textView6"
-        android:layout_width="95dp"
-        android:layout_height="wrap_content"
-        android:text="@string/inchanel"
-        android:textColor="#000000"
-        android:textSize="18sp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.23"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.45" />
-
-    <TextView
-        android:id="@+id/textView8"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text=""
-        android:textColor="#000000"
-        android:textSize="14sp"
-        app:layout_constraintBottom_toBottomOf="@+id/textView6"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.77"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="@+id/textView6" />
-
-    <!-- Индикаторы -->
     <ImageView
         android:id="@+id/imageView"
         android:layout_width="20dp"
@@ -127,7 +111,7 @@
         android:layout_height="30dp"
         android:layout_marginTop="24dp"
         android:background="@drawable/roundshapebtn"
-        android:text="@string/call"
+        android:text="CALL"
         android:textColor="@color/colorButton"
         app:layout_constraintEnd_toStartOf="@+id/button2"
         app:layout_constraintHorizontal_bias="0.3"
@@ -139,7 +123,7 @@
         android:layout_width="70dp"
         android:layout_height="30dp"
         android:background="@drawable/roundshapebtn"
-        android:text="@string/up"
+        android:text="UP"
         android:textColor="@color/colorButton"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.81"
@@ -152,7 +136,7 @@
         android:layout_height="30dp"
         android:layout_marginTop="24dp"
         android:background="@drawable/roundshapebtn"
-        android:text="@string/down"
+        android:text="DOWN"
         android:textColor="@color/colorButton"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.81"
@@ -164,7 +148,7 @@
         android:layout_width="70dp"
         android:layout_height="30dp"
         android:background="@drawable/roundshapebtn"
-        android:text="@string/menu"
+        android:text="MENU"
         android:textColor="@color/colorButton"
         app:layout_constraintBottom_toBottomOf="@+id/imageView6"
         app:layout_constraintEnd_toStartOf="@+id/button1"
@@ -178,7 +162,7 @@
         android:layout_width="70dp"
         android:layout_height="30dp"
         android:background="@drawable/roundshapebtn"
-        android:text="@string/one"
+        android:text="1"
         android:textColor="@color/colorButton"
         app:layout_constraintEnd_toStartOf="@+id/button1"
         app:layout_constraintStart_toEndOf="@+id/button4"
@@ -190,7 +174,7 @@
         android:layout_height="30dp"
         android:layout_marginTop="24dp"
         android:background="@drawable/roundshapebtn"
-        android:text="@string/two"
+        android:text="2"
         android:textColor="@color/colorButton"
         app:layout_constraintEnd_toStartOf="@+id/button2"
         app:layout_constraintStart_toEndOf="@+id/button"
@@ -202,7 +186,7 @@
         android:layout_height="30dp"
         android:layout_marginTop="24dp"
         android:background="@drawable/roundshapebtn"
-        android:text="@string/three"
+        android:text="3"
         android:textColor="@color/colorButton"
         app:layout_constraintEnd_toStartOf="@+id/button1"
         app:layout_constraintHorizontal_bias="0.3"
@@ -215,7 +199,7 @@
         android:layout_height="30dp"
         android:layout_marginTop="24dp"
         android:background="@drawable/roundshapebtn"
-        android:text="@string/four"
+        android:text="4"
         android:textColor="@color/colorButton"
         app:layout_constraintEnd_toStartOf="@+id/button2"
         app:layout_constraintHorizontal_bias="0.493"
@@ -228,14 +212,13 @@
         android:layout_height="30dp"
         android:layout_marginTop="24dp"
         android:background="@drawable/roundshapebtn"
-        android:text="@string/five"
+        android:text="5"
         android:textColor="@color/colorButton"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.81"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/button2" />
 
-    <!-- Кнопка PTT (Нажимаем на решетку динамика) -->
     <Button
         android:id="@+id/btnPTT"
         android:layout_width="0dp"
@@ -248,19 +231,6 @@
         app:layout_constraintWidth_percent="0.6"
         app:layout_constraintHeight_percent="0.25" />
 
-    <!-- Чекбокс DTMF -->
-    <CheckBox
-        android:id="@+id/checkBox"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:layout_marginRight="8dp"
-        android:text="DTMF"
-        android:textColor="@color/colortextabout"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <!-- Невидимая кнопка для входа в режим Админа -->
     <Button
         android:id="@+id/btnSecretMode"
         android:layout_width="50dp"

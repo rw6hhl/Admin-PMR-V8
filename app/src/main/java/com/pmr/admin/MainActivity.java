@@ -6,7 +6,6 @@ import android.os.Bundle;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
-import android.widget.CheckBox;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -14,10 +13,9 @@ import androidx.appcompat.app.AppCompatActivity;
 
 public class MainActivity extends AppCompatActivity {
     private SharedPreferences prefs;
-    private TextView tvChannel, tvIndex, tvMode, tvInChannel, tvReceive, tvSpeakingId;
+    private TextView tvChannel, tvIndex, tvMode, tvReceive, tvSpeakingId;
     private ImageView imgRed, imgGreen;
     private Button btnMenu, btnUp, btnDown, btnSave1, btnSave2, btnSave3, btnSave4, btnSave5, btnCall, btnPTT, btnSecretMode;
-    private CheckBox checkBoxDtmf;
 
     private int currentChannel = 1;
     private boolean isRecording = false;
@@ -44,7 +42,6 @@ public class MainActivity extends AppCompatActivity {
         tvChannel = findViewById(R.id.textView);
         tvIndex = findViewById(R.id.textView4);
         tvMode = findViewById(R.id.textView5);
-        tvInChannel = findViewById(R.id.textView6);
         tvReceive = findViewById(R.id.textView8);
         tvSpeakingId = findViewById(R.id.tvSpeakingId);
         imgRed = findViewById(R.id.imageView);
@@ -60,21 +57,12 @@ public class MainActivity extends AppCompatActivity {
         btnSave4 = findViewById(R.id.buttonsave4);
         btnSave5 = findViewById(R.id.buttonsave5);
         btnPTT = findViewById(R.id.btnPTT);
-        checkBoxDtmf = findViewById(R.id.checkBox);
         btnSecretMode = findViewById(R.id.btnSecretMode);
     }
 
     private void setupListeners() {
-        btnMenu.setOnClickListener(v -> {
-            if (isAdminMode) {
-                // Если админ, можно открыть список или настройки. Например, долгим нажатием.
-                startActivity(new Intent(this, SettingsActivity.class));
-            } else {
-                startActivity(new Intent(this, SettingsActivity.class));
-            }
-        });
-
-        // Долгое нажатие на MENU в режиме Админа открывает список абонентов
+        btnMenu.setOnClickListener(v -> startActivity(new Intent(this, SettingsActivity.class)));
+        
         btnMenu.setOnLongClickListener(v -> {
             if (isAdminMode) {
                 startActivity(new Intent(this, ChanListActivity.class));
@@ -83,7 +71,6 @@ public class MainActivity extends AppCompatActivity {
             return false;
         });
 
-        // Вход в админ-режим по клику на скрытую область
         btnSecretMode.setOnClickListener(v -> {
             if (!isAdminMode) {
                 startActivity(new Intent(this, PasswordActivity.class));
@@ -95,12 +82,34 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        // Ячейки сохранения (логика сохранения текущих настроек)
-        btnSave1.setOnClickListener(v -> savePreset(1));
-        btnSave2.setOnClickListener(v -> savePreset(2));
-        btnSave3.setOnClickListener(v -> savePreset(3));
-        btnSave4.setOnClickListener(v -> savePreset(4));
-        btnSave5.setOnClickListener(v -> savePreset(5));
+        // Логика переключения каналов
+        btnUp.setOnClickListener(v -> {
+            if (currentChannel < 8) {
+                currentChannel++;
+                updateUI();
+            }
+        });
+
+        btnDown.setOnClickListener(v -> {
+            if (currentChannel > 0) {
+                currentChannel--;
+                updateUI();
+            }
+        });
+
+        // Логика ячеек (сохранение / загрузка по нажатию)
+        btnSave1.setOnClickListener(v -> loadPreset(1));
+        btnSave2.setOnClickListener(v -> loadPreset(2));
+        btnSave3.setOnClickListener(v -> loadPreset(3));
+        btnSave4.setOnClickListener(v -> loadPreset(4));
+        btnSave5.setOnClickListener(v -> loadPreset(5));
+
+        // Долгое нажатие для сохранения в ячейку
+        btnSave1.setOnLongClickListener(v -> { savePreset(1); return true; });
+        btnSave2.setOnLongClickListener(v -> { savePreset(2); return true; });
+        btnSave3.setOnLongClickListener(v -> { savePreset(3); return true; });
+        btnSave4.setOnLongClickListener(v -> { savePreset(4); return true; });
+        btnSave5.setOnLongClickListener(v -> { savePreset(5); return true; });
 
         // PTT
         btnPTT.setOnTouchListener((v, event) -> {
@@ -108,14 +117,12 @@ public class MainActivity extends AppCompatActivity {
                 case MotionEvent.ACTION_DOWN:
                     isRecording = true;
                     imgRed.setVisibility(View.VISIBLE);
-                    // audioEngine.startRecording(); // Раскомментировать при интеграции движка
                     Toast.makeText(this, "Передача...", Toast.LENGTH_SHORT).show();
                     return true;
                 case MotionEvent.ACTION_UP:
                 case MotionEvent.ACTION_CANCEL:
                     isRecording = false;
                     imgRed.setVisibility(View.INVISIBLE);
-                    // audioEngine.stopRecording();
                     return true;
             }
             return false;
@@ -127,15 +134,41 @@ public class MainActivity extends AppCompatActivity {
         editor.putInt("preset_channel_" + presetNum, currentChannel);
         editor.putString("preset_index_" + presetNum, prefs.getString("MyMailIndex", ""));
         editor.putString("preset_priznak_" + presetNum, prefs.getString("Priznak_pmr", ""));
+        editor.putString("preset_ip_" + presetNum, prefs.getString("ip_server", ""));
+        editor.putInt("preset_codec_" + presetNum, prefs.getInt("codec", 3));
+        editor.putBoolean("preset_simplex_" + presetNum, prefs.getBoolean("simplex", false));
         editor.apply();
         Toast.makeText(this, "Настройки сохранены в ячейку " + presetNum, Toast.LENGTH_SHORT).show();
     }
 
+    private void loadPreset(int presetNum) {
+        int channel = prefs.getInt("preset_channel_" + presetNum, currentChannel);
+        String index = prefs.getString("preset_index_" + presetNum, prefs.getString("MyMailIndex", "111111"));
+        String priznak = prefs.getString("preset_priznak_" + presetNum, prefs.getString("Priznak_pmr", "26001"));
+        String ip = prefs.getString("preset_ip_" + presetNum, prefs.getString("ip_server", "185.221.154.39"));
+        int codec = prefs.getInt("preset_codec_" + presetNum, prefs.getInt("codec", 3));
+        boolean isSimplex = prefs.getBoolean("preset_simplex_" + presetNum, prefs.getBoolean("simplex", false));
+
+        currentChannel = channel;
+        
+        prefs.edit()
+            .putInt("current_channel", channel)
+            .putString("MyMailIndex", index)
+            .putString("Priznak_pmr", priznak)
+            .putString("ip_server", ip)
+            .putInt("codec", codec)
+            .putBoolean("simplex", isSimplex)
+            .apply();
+
+        updateUI();
+        Toast.makeText(this, "Загружена ячейка " + presetNum, Toast.LENGTH_SHORT).show();
+    }
+
     private void updateUI() {
-        tvChannel.setText(String.valueOf(currentChannel));
+        tvChannel.setText(currentChannel == 0 ? "R" : String.valueOf(currentChannel));
         tvIndex.setText(prefs.getString("MyMailIndex", "111111"));
         tvMode.setText(prefs.getBoolean("simplex", false) ? "simplex" : "duplex");
-        tvInChannel.setText("In chanel: " + currentChannel);
+        tvReceive.setText("No receive"); 
         
         if (isAdminMode) {
             tvChannel.setTextColor(getResources().getColor(R.color.active));
@@ -148,6 +181,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         isAdminMode = prefs.getBoolean("is_admin_mode", false);
+        currentChannel = prefs.getInt("current_channel", 1);
         updateUI();
     }
 

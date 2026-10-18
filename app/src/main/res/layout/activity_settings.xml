@@ -10,7 +10,6 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-        <!-- Симплекс -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -21,7 +20,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="@string/simpl"
+                android:text="Симплекс"
                 android:textColor="@color/colortextabout"
                 android:textSize="18sp" />
             <Switch
@@ -30,138 +29,140 @@
                 android:layout_height="wrap_content" />
         </LinearLayout>
 
-        <TextView
+        <Button
+            android:id="@+id/btnToggleServer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:layout_marginBottom="16dp"
-            android:gravity="center"
-            android:text="Настройка сервера"
-            android:textColor="@color/colortextabout"
-            android:textSize="20sp" />
+            android:background="@drawable/roundshapebtn"
+            android:text="Настройки сервера"
+            android:textColor="@color/colorButton"
+            android:layout_marginBottom="16dp" />
 
-        <!-- MyMailIndex -->
+        <!-- Блок настроек сервера (скрыт по умолчанию) -->
         <LinearLayout
+            android:id="@+id/layoutServerSettings"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:layout_marginBottom="16dp"
-            android:orientation="horizontal">
-            <TextView
-                android:layout_width="0dp"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="MyMailIndex ="
-                android:textColor="@color/colortextabout"
-                android:textSize="18sp" />
-            <EditText
-                android:id="@+id/editMailIndex"
-                android:layout_width="120dp"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="16dp"
+                android:orientation="horizontal">
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="MyMailIndex ="
+                    android:textColor="@color/colortextabout"
+                    android:textSize="18sp" />
+                <EditText
+                    android:id="@+id/editMailIndex"
+                    android:layout_width="120dp"
+                    android:layout_height="wrap_content"
+                    android:backgroundTint="@color/colortextabout"
+                    android:inputType="number"
+                    android:textColor="@color/colortextabout"
+                    android:textSize="18sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:backgroundTint="@color/colortextabout"
-                android:inputType="number"
-                android:textColor="@color/colortextabout"
-                android:textSize="18sp" />
+                android:gravity="center_vertical"
+                android:layout_marginBottom="16dp"
+                android:orientation="horizontal">
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Priznak_pmr ="
+                    android:textColor="@color/colortextabout"
+                    android:textSize="18sp" />
+                <EditText
+                    android:id="@+id/editPriznak"
+                    android:layout_width="120dp"
+                    android:layout_height="wrap_content"
+                    android:backgroundTint="@color/colortextabout"
+                    android:inputType="number"
+                    android:maxLength="5"
+                    android:textColor="@color/colortextabout"
+                    android:textSize="18sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="16dp"
+                android:orientation="horizontal">
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="PORT_prm ="
+                    android:textColor="@color/colortextabout"
+                    android:textSize="18sp" />
+                <EditText
+                    android:id="@+id/editPortPrm"
+                    android:layout_width="120dp"
+                    android:layout_height="wrap_content"
+                    android:backgroundTint="@color/colortextabout"
+                    android:inputType="number"
+                    android:textColor="@color/colortextabout"
+                    android:textSize="18sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="16dp"
+                android:orientation="horizontal">
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="PORT_prd ="
+                    android:textColor="@color/colortextabout"
+                    android:textSize="18sp" />
+                <EditText
+                    android:id="@+id/editPortPrd"
+                    android:layout_width="120dp"
+                    android:layout_height="wrap_content"
+                    android:backgroundTint="@color/colortextabout"
+                    android:inputType="number"
+                    android:textColor="@color/colortextabout"
+                    android:textSize="18sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="24dp"
+                android:orientation="horizontal">
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="ip_server ="
+                    android:textColor="@color/colortextabout"
+                    android:textSize="18sp" />
+                <EditText
+                    android:id="@+id/editIp"
+                    android:layout_width="150dp"
+                    android:layout_height="wrap_content"
+                    android:backgroundTint="@color/colortextabout"
+                    android:inputType="text"
+                    android:textColor="@color/colortextabout"
+                    android:textSize="18sp" />
+            </LinearLayout>
         </LinearLayout>
 
-        <!-- Priznak_pmr -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:layout_marginBottom="16dp"
-            android:orientation="horizontal">
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Priznak_pmr ="
-                android:textColor="@color/colortextabout"
-                android:textSize="18sp" />
-            <EditText
-                android:id="@+id/editPriznak"
-                android:layout_width="120dp"
-                android:layout_height="wrap_content"
-                android:backgroundTint="@color/colortextabout"
-                android:inputType="number"
-                android:maxLength="5"
-                android:textColor="@color/colortextabout"
-                android:textSize="18sp" />
-        </LinearLayout>
-
-        <!-- PORT_prm -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:layout_marginBottom="16dp"
-            android:orientation="horizontal">
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="PORT_prm ="
-                android:textColor="@color/colortextabout"
-                android:textSize="18sp" />
-            <EditText
-                android:id="@+id/editPortPrm"
-                android:layout_width="120dp"
-                android:layout_height="wrap_content"
-                android:backgroundTint="@color/colortextabout"
-                android:inputType="number"
-                android:textColor="@color/colortextabout"
-                android:textSize="18sp" />
-        </LinearLayout>
-
-        <!-- PORT_prd -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:layout_marginBottom="16dp"
-            android:orientation="horizontal">
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="PORT_prd ="
-                android:textColor="@color/colortextabout"
-                android:textSize="18sp" />
-            <EditText
-                android:id="@+id/editPortPrd"
-                android:layout_width="120dp"
-                android:layout_height="wrap_content"
-                android:backgroundTint="@color/colortextabout"
-                android:inputType="number"
-                android:textColor="@color/colortextabout"
-                android:textSize="18sp" />
-        </LinearLayout>
-
-        <!-- ip_server -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:layout_marginBottom="24dp"
-            android:orientation="horizontal">
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="ip_server ="
-                android:textColor="@color/colortextabout"
-                android:textSize="18sp" />
-            <EditText
-                android:id="@+id/editIp"
-                android:layout_width="150dp"
-                android:layout_height="wrap_content"
-                android:backgroundTint="@color/colortextabout"
-                android:inputType="text"
-                android:textColor="@color/colortextabout"
-                android:textSize="18sp" />
-        </LinearLayout>
-
-        <!-- Режим передачи (Кнопка, скрывающая кодеки) -->
         <Button
             android:id="@+id/btnCodecDialog"
             android:layout_width="match_parent"
