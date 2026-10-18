@@ -1,10 +1,12 @@
 package com.pmr.admin;
 
+import android.Manifest;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.PowerManager;
 import android.view.MotionEvent;
@@ -14,9 +16,13 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 public class MainActivity extends AppCompatActivity {
+    private static final int REQ_MIC = 101;
     private SharedPreferences prefs;
     private TextView tvChannel, tvIndex, tvMode, tvReceive, tvSpeakingId, tvVersion;
     private ImageView imgRed;
@@ -40,6 +46,8 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         
+        requestMicPermission();
+
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
         if (powerManager != null) {
@@ -57,6 +65,25 @@ public class MainActivity extends AppCompatActivity {
         
         Intent serviceIntent = new Intent(this, PmrService.class);
         startService(serviceIntent);
+    }
+
+    private void requestMicPermission() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, REQ_MIC);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQ_MIC) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                AppLog.add("Разрешение на микрофон получено");
+            } else {
+                AppLog.add("ОШИБКА: Разрешение на микрофон отклонено!");
+                Toast.makeText(this, "Без микрофона передача не работает!", Toast.LENGTH_LONG).show();
+            }
+        }
     }
 
     private void initViews() {
@@ -127,7 +154,6 @@ public class MainActivity extends AppCompatActivity {
         btnSave4.setOnLongClickListener(v -> { savePreset(4); return true; });
         btnSave5.setOnLongClickListener(v -> { savePreset(5); return true; });
 
-        // PTT
         btnPTT.setOnTouchListener((v, event) -> {
             switch (event.getAction()) {
                 case MotionEvent.ACTION_DOWN:
@@ -160,8 +186,8 @@ public class MainActivity extends AppCompatActivity {
         currentChannel = prefs.getInt("preset_channel_" + presetNum, currentChannel);
         prefs.edit()
             .putInt("current_channel", currentChannel)
-            .putString("MyMailIndex", prefs.getString("preset_index_" + presetNum, prefs.getString("MyMailIndex", "111111")))
-            .putString("Priznak_pmr", prefs.getString("preset_priznak_" + presetNum, prefs.getString("Priznak_pmr", "26001")))
+            .putString("MyMailIndex", prefs.getString("preset_index_" + presetNum, prefs.getString("MyMailIndex", "26000")))
+            .putString("Priznak_pmr", prefs.getString("preset_priznak_" + presetNum, prefs.getString("Priznak_pmr", "51953")))
             .putString("ip_server", prefs.getString("preset_ip_" + presetNum, prefs.getString("ip_server", "185.221.154.39")))
             .putInt("codec", prefs.getInt("preset_codec_" + presetNum, prefs.getInt("codec", 3)))
             .putBoolean("simplex", prefs.getBoolean("preset_simplex_" + presetNum, prefs.getBoolean("simplex", false)))
@@ -172,7 +198,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void updateUI() {
         tvChannel.setText(currentChannel == 0 ? "R" : String.valueOf(currentChannel));
-        tvIndex.setText(prefs.getString("MyMailIndex", "111111"));
+        tvIndex.setText(prefs.getString("MyMailIndex", "26000"));
         tvMode.setText(prefs.getBoolean("simplex", false) ? "simplex" : "duplex");
         tvReceive.setText("No receive"); 
         tvVersion.setText("v" + BuildConfig.VERSION_NAME);

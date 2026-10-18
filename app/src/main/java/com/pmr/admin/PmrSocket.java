@@ -20,10 +20,10 @@ public class PmrSocket {
     private AudioEngine audioEngine;
     
     private SharedPreferences prefs;
-    private int priznakPmr = 26010;
-    private int myMailIndex = 35915;
-    private int portPrm = 5323;
-    private int portPrd = 15000;
+    private int priznakPmr = 51953;
+    private int myMailIndex = 26000;
+    private int portPrm = 5254;
+    private int portPrd = 16000;
     private int kanalPrd = 13;
     private int kanalSecret = 0;
 
@@ -42,10 +42,10 @@ public class PmrSocket {
         this.prefs = context.getSharedPreferences("pmr_prefs", Context.MODE_PRIVATE);
         loadSettings();
         try {
-            this.serverAddr = InetAddress.getByName("109.172.7.155");
+            this.serverAddr = InetAddress.getByName("185.221.154.39");
             this.socket = new DatagramSocket(portPrm);
             this.socket.setSoTimeout(1000);
-            AppLog.add("Сокет открыт: IP=109.172.7.155, порт=" + portPrm + ", секрет=" + kanalSecret);
+            AppLog.add("Сокет открыт: IP=185.221.154.39, порт=" + portPrm + ", секрет=" + kanalSecret);
         } catch (Exception e) {
             Log.e(TAG, "Error init socket: " + e.getMessage());
             AppLog.add("Ошибка сокета: " + e.getMessage());
@@ -57,16 +57,18 @@ public class PmrSocket {
     }
 
     private void loadSettings() {
-        priznakPmr = 26010;
-        myMailIndex = 35915;
-        portPrd = 15000;
+        priznakPmr = 51953;
+        myMailIndex = 26000;
+        portPrm = 5254;
+        portPrd = 16000;
+        
         kanalSecret = (myMailIndex & 0xFFFFFFF0) >> 4;
         
         int myPChannel = prefs.getInt("current_channel", 1);
         if (myPChannel == 0) kanalPrd = 0;
         else kanalPrd = ((myMailIndex & 0xF) * 8) + myPChannel;
         
-        AppLog.add("Настройки: ID=" + priznakPmr + ", Mail=" + myMailIndex + ", Канал=" + kanalPrd + ", Секрет=" + kanalSecret);
+        AppLog.add("Настройки: ID=" + priznakPmr + ", Mail=" + myMailIndex + ", Канал=" + kanalPrd + ", Секрет=" + kanalSecret + ", Порт=" + portPrd);
     }
 
     public void setAudioEngine(AudioEngine audioEngine) {
@@ -194,7 +196,6 @@ public class PmrSocket {
     }
 
     public void sendUnban(int targetId) {
-        // На сервере PMR разбан обычно делается повторной отправкой команды 222
         sendBan(targetId);
         AppLog.add("→ Отправлено: РАЗБАН (повтор 222) ID=" + targetId);
     }
