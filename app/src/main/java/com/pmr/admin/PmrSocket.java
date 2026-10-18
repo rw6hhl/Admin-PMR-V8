@@ -14,7 +14,6 @@ public class PmrSocket {
     private static final String TAG = "PmrSocket";
     private DatagramSocket socket;
     private InetAddress serverAddr;
-    private int serverPort;
     private boolean isRunning = false;
     private Thread receiveThread;
     private Thread pingThread;
@@ -24,8 +23,9 @@ public class PmrSocket {
     private int priznakPmr = 26010;
     private int myMailIndex = 35915;
     private int portPrm = 5323;
-    private int portPrd = 15000;
+    private int portPrd = 15000; // Используем твой порт
     private int kanalPrd = 13;
+    private int kanalSecret = 0;
 
     public interface OnVoiceListener {
         void onVoiceReceived(int clientId);
@@ -42,12 +42,10 @@ public class PmrSocket {
         this.prefs = context.getSharedPreferences("pmr_prefs", Context.MODE_PRIVATE);
         loadSettings();
         try {
-            String ip = prefs.getString("ip_server", "109.172.7.155");
-            if (ip == null || ip.trim().isEmpty()) ip = "109.172.7.155";
-            this.serverAddr = InetAddress.getByName(ip);
+            this.serverAddr = InetAddress.getByName("109.172.7.155");
             this.socket = new DatagramSocket(portPrm);
             this.socket.setSoTimeout(1000);
-            AppLog.add("Сокет открыт на порту " + portPrm + ", IP=" + ip);
+            AppLog.add("Сокет открыт: IP=109.172.7.155, порт=" + portPrm + ", секрет=" + kanalSecret);
         } catch (Exception e) {
             Log.e(TAG, "Error init socket: " + e.getMessage());
             AppLog.add("Ошибка сокета: " + e.getMessage());
@@ -59,15 +57,18 @@ public class PmrSocket {
     }
 
     private void loadSettings() {
-        priznakPmr = Integer.parseInt(prefs.getString("Priznak_pmr", "26010"));
-        myMailIndex = Integer.parseInt(prefs.getString("MyMailIndex", "035915"));
-        portPrm = prefs.getInt("PORT_prm", 5323);
-        portPrd = prefs.getInt("PORT_prd", 15000);
+        priznakPmr = 26010;
+        myMailIndex = 35915;
+        portPrd = 15000;
+        
+        // Вычисляем секрет по формуле из admin.c
+        kanalSecret = (myMailIndex & 0xFFFFFFF0) >> 4;
         
         int myPChannel = prefs.getInt("current_channel", 1);
         if (myPChannel == 0) kanalPrd = 0;
         else kanalPrd = ((myMailIndex & 0xF) * 8) + myPChannel;
-        AppLog.add("Настройки: ID=" + priznakPmr + ", Mail=" + myMailIndex + ", Канал=" + kanalPrd + ", Порт=" + portPrd);
+        
+        AppLog.add("Настройки: ID=" + priznakPmr + ", Mail=" + myMailIndex + ", Канал=" + kanalPrd + ", Секрет=" + kanalSecret);
     }
 
     public void setAudioEngine(AudioEngine audioEngine) {
@@ -100,16 +101,22 @@ public class PmrSocket {
             int cikl = 0;
             while (isRunning) {
                 try {
+                    // cmd=7 (секрет) отправляется раз в секунду
                     byte[] ping = new byte[4];
-                    ping[0] = 7; ping[1] = 13; ping[2] = 0; ping[3] = 0;
+                    ping[0] = 7; 
+                    ping[1] = (byte) kanalPrd; 
+                    ping[2] = (byte) (kanalSecret & 0xFF);
+                    ping[3] = (byte) ((kanalSecret >> 8) & 0xFF);
                     socket.send(new DatagramPacket(ping, 4, serverAddr, portPrd + kanalPrd));
                     
                     Thread.sleep(1000);
                     cikl++;
                     
+                    // cmd=0 (признак) раз в 4 секунды
                     if (cikl > 3) {
                         byte[] priznak = new byte[6];
-                        priznak[0] = 0; priznak[1] = 13;
+                        priznak[0] = 0; 
+                        priznak[1] = (byte) kanalPrd;
                         priznak[2] = (byte) (priznakPmr & 0xFF);
                         priznak[3] = (byte) ((priznakPmr >> 8) & 0xFF);
                         socket.send(new DatagramPacket(priznak, 6, serverAddr, portPrd + kanalPrd));
@@ -160,9 +167,11 @@ public class PmrSocket {
         if (socket == null || socket.isClosed()) return;
         try {
             byte[] cmd = new byte[4];
-            cmd[0] = (byte) 234; cmd[1] = 13;
-            socket.send(new DatagramPacket(cmd, 4, serverAddr, portPrd + kanalPrd));
-            AppLog.add("→ Отправлено: cmd=234 (запрос списка)");
+            cmd[0] = (byte) 234; 
+            cmd[1] = (byte) kanalPrd;
+            // ИСПРАВЛЕНО: отправляем на порт 16013, как в рабочей версии V4.2
+            socket.send(new DatagramPacket(cmd, 4, serverAddr, 16013));
+            AppLog.add("→ Отправлено: cmd=234 (запрос списка) на порт 16013");
         } catch (IOException e) {
             AppLog.add("Ошибка отправки списка: " + e.getMessage());
         }
@@ -170,7 +179,8 @@ public class PmrSocket {
 
     public void sendBan(int targetId) {
         byte[] ban = new byte[4];
-        ban[0] = (byte) 222; ban[1] = 13;
+        ban[0] = (byte) 222; 
+        ban[1] = (byte) kanalPrd;
         ban[2] = (byte) (targetId & 0xFF);
         ban[3] = (byte) ((targetId >> 8) & 0xFF);
         try {
@@ -183,7 +193,8 @@ public class PmrSocket {
 
     public void sendUnban(int targetId) {
         byte[] unban = new byte[4];
-        unban[0] = (byte) 222; unban[1] = 13;
+        unban[0] = (byte) 222; 
+        unban[1] = (byte) kanalPrd;
         unban[2] = (byte) (targetId & 0xFF);
         unban[3] = (byte) ((targetId >> 8) & 0xFF);
         try {
@@ -204,13 +215,13 @@ public class PmrSocket {
         if (socket == null || socket.isClosed()) return;
         try {
             byte[] packet = new byte[324];
-            packet[0] = 22; packet[1] = (byte) kanalPrd;
+            packet[0] = 22; 
+            packet[1] = (byte) kanalPrd;
             packet[2] = (byte) (priznakPmr & 0xFF);
             packet[3] = (byte) ((priznakPmr >> 8) & 0xFF);
             int dataLen = Math.min(encodedG711.length, 320);
             System.arraycopy(encodedG711, 0, packet, 4, dataLen);
             socket.send(new DatagramPacket(packet, 324, serverAddr, portPrd + kanalPrd));
-            // Не логируем голос, чтобы не забить лог
         } catch (IOException e) {
             AppLog.add("Ошибка отправки голоса: " + e.getMessage());
         }
