@@ -1,12 +1,9 @@
 package com.pmr.admin;
 
 import android.os.Bundle;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.ImageView;
-import android.widget.TextView;
-import androidx.annotation.NonNull;
+import android.os.Handler;
+import android.os.Looper;
+import android.widget.Button;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -24,6 +21,7 @@ public class ChanListActivity extends AppCompatActivity {
 
     private final List<User> users = new ArrayList<>();
     private ChanAdapter adapter;
+    private Button btnRefresh;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,15 +30,16 @@ public class ChanListActivity extends AppCompatActivity {
 
         RecyclerView recyclerView = findViewById(R.id.recyclerChanList);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        btnRefresh = findViewById(R.id.btnRefreshList); // Добавим кнопку в layout позже
 
-        // Тестовые данные для отображения (в будущем будут браться из PmrSocket)
+        // Тестовые данные (пока PmrSocket не парсит список)
         users.add(new User("26001", "RW6HHL", 1));
         users.add(new User("26002", "R1ABC", 0));
         users.add(new User("26003", "R2XYZ", 2));
 
         adapter = new ChanAdapter(users, (user, position) -> {
             if (user.status != 2) {
-                user.status = 2; // Бан
+                user.status = 2; 
                 // Здесь будет отправка cmd=222 через PmrSocket
                 adapter.notifyItemChanged(position);
             }

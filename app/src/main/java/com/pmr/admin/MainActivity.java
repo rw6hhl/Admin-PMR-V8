@@ -1,6 +1,9 @@
 package com.pmr.admin;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.PowerManager;
@@ -17,19 +20,27 @@ public class MainActivity extends AppCompatActivity {
     private SharedPreferences prefs;
     private TextView tvChannel, tvIndex, tvMode, tvReceive, tvSpeakingId, tvVersion;
     private ImageView imgRed, imgGreen;
-    private Button btnMenu, btnUp, btnDown, btnSave1, btnSave2, btnSave3, btnSave4, btnSave5, btnCall, btnPTT, btnSecretMode;
-
-    private int currentChannel = 1;
-    private boolean isRecording = false;
+    private Button btnMenu, btnUp, btnDown, btnSave1, btnSave2, btnSave3, btnSave4, btnSave5, btnPTT, btnSecretMode;
     private boolean isAdminMode = false;
     private PowerManager.WakeLock wakeLock;
+    private int currentChannel = 1;
+
+    // Принимаем ID говорящего из сервиса
+    private BroadcastReceiver voiceReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            int clientId = intent.getIntExtra("clientId", -1);
+            if (clientId != -1) {
+                tvSpeakingId.setText(String.valueOf(clientId));
+            }
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         
-        // Экран не гаснет
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
         if (powerManager != null) {
@@ -62,7 +73,6 @@ public class MainActivity extends AppCompatActivity {
         btnMenu = findViewById(R.id.button4);
         btnUp = findViewById(R.id.button1);
         btnDown = findViewById(R.id.button2);
-        btnCall = findViewById(R.id.button);
         btnSave1 = findViewById(R.id.buttonsave1);
         btnSave2 = findViewById(R.id.buttonsave2);
         btnSave3 = findViewById(R.id.buttonsave3);
@@ -74,7 +84,6 @@ public class MainActivity extends AppCompatActivity {
 
     private void setupListeners() {
         btnMenu.setOnClickListener(v -> startActivity(new Intent(this, SettingsActivity.class)));
-        
         btnMenu.setOnLongClickListener(v -> {
             if (isAdminMode) {
                 startActivity(new Intent(this, ChanListActivity.class));
@@ -110,7 +119,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        // Настройка ячеек
         btnSave1.setOnClickListener(v -> loadPreset(1));
         btnSave2.setOnClickListener(v -> loadPreset(2));
         btnSave3.setOnClickListener(v -> loadPreset(3));
@@ -123,16 +131,17 @@ public class MainActivity extends AppCompatActivity {
         btnSave4.setOnLongClickListener(v -> { savePreset(4); return true; });
         btnSave5.setOnLongClickListener(v -> { savePreset(5); return true; });
 
+        // PTT (Нажал - говоришь, отпустил - слушаешь)
         btnPTT.setOnTouchListener((v, event) -> {
             switch (event.getAction()) {
                 case MotionEvent.ACTION_DOWN:
-                    isRecording = true;
                     imgRed.setVisibility(View.VISIBLE);
+                    sendBroadcast(new Intent("PMR_START_RECORDING"));
                     return true;
                 case MotionEvent.ACTION_UP:
                 case MotionEvent.ACTION_CANCEL:
-                    isRecording = false;
                     imgRed.setVisibility(View.INVISIBLE);
+                    sendBroadcast(new Intent("PMR_STOP_RECORDING"));
                     return true;
             }
             return false;
@@ -148,28 +157,19 @@ public class MainActivity extends AppCompatActivity {
         editor.putInt("preset_codec_" + presetNum, prefs.getInt("codec", 3));
         editor.putBoolean("preset_simplex_" + presetNum, prefs.getBoolean("simplex", false));
         editor.apply();
-        Toast.makeText(this, "Настройки сохранены в ячейку " + presetNum, Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "Сохранено в ячейку " + presetNum, Toast.LENGTH_SHORT).show();
     }
 
     private void loadPreset(int presetNum) {
-        int channel = prefs.getInt("preset_channel_" + presetNum, currentChannel);
-        String index = prefs.getString("preset_index_" + presetNum, prefs.getString("MyMailIndex", "111111"));
-        String priznak = prefs.getString("preset_priznak_" + presetNum, prefs.getString("Priznak_pmr", "26001"));
-        String ip = prefs.getString("preset_ip_" + presetNum, prefs.getString("ip_server", "185.221.154.39"));
-        int codec = prefs.getInt("preset_codec_" + presetNum, prefs.getInt("codec", 3));
-        boolean isSimplex = prefs.getBoolean("preset_simplex_" + presetNum, prefs.getBoolean("simplex", false));
-
-        currentChannel = channel;
-        
+        currentChannel = prefs.getInt("preset_channel_" + presetNum, currentChannel);
         prefs.edit()
-            .putInt("current_channel", channel)
-            .putString("MyMailIndex", index)
-            .putString("Priznak_pmr", priznak)
-            .putString("ip_server", ip)
-            .putInt("codec", codec)
-            .putBoolean("simplex", isSimplex)
+            .putInt("current_channel", currentChannel)
+            .putString("MyMailIndex", prefs.getString("preset_index_" + presetNum, prefs.getString("MyMailIndex", "111111")))
+            .putString("Priznak_pmr", prefs.getString("preset_priznak_" + presetNum, prefs.getString("Priznak_pmr", "26001")))
+            .putString("ip_server", prefs.getString("preset_ip_" + presetNum, prefs.getString("ip_server", "185.221.154.39")))
+            .putInt("codec", prefs.getInt("preset_codec_" + presetNum, prefs.getInt("codec", 3)))
+            .putBoolean("simplex", prefs.getBoolean("preset_simplex_" + presetNum, prefs.getBoolean("simplex", false)))
             .apply();
-
         updateUI();
         Toast.makeText(this, "Загружена ячейка " + presetNum, Toast.LENGTH_SHORT).show();
     }
@@ -194,15 +194,19 @@ public class MainActivity extends AppCompatActivity {
         isAdminMode = prefs.getBoolean("is_admin_mode", false);
         currentChannel = prefs.getInt("current_channel", 1);
         updateUI();
+        registerReceiver(voiceReceiver, new IntentFilter("PMR_VOICE_RECEIVED"));
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        unregisterReceiver(voiceReceiver);
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if (wakeLock != null && wakeLock.isHeld()) {
-            wakeLock.release();
-        }
-        Intent serviceIntent = new Intent(this, PmrService.class);
-        stopService(serviceIntent);
+        if (wakeLock != null && wakeLock.isHeld()) wakeLock.release();
+        stopService(new Intent(this, PmrService.class));
     }
 }

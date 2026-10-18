@@ -4,7 +4,10 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.Service;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Build;
 import android.os.IBinder;
 import androidx.annotation.Nullable;
@@ -15,10 +18,26 @@ public class PmrService extends Service {
     private PmrSocket pmrSocket;
     private AudioEngine audioEngine;
 
+    private BroadcastReceiver controlReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            if ("PMR_START_RECORDING".equals(action)) {
+                if (audioEngine != null) audioEngine.startRecording();
+            } else if ("PMR_STOP_RECORDING".equals(action)) {
+                if (audioEngine != null) audioEngine.stopRecording();
+            }
+        }
+    };
+
     @Override
     public void onCreate() {
         super.onCreate();
         createNotificationChannel();
+        IntentFilter filter = new IntentFilter();
+        filter.addAction("PMR_START_RECORDING");
+        filter.addAction("PMR_STOP_RECORDING");
+        registerReceiver(controlReceiver, filter);
     }
 
     @Override
@@ -30,10 +49,20 @@ public class PmrService extends Service {
                 .build();
         startForeground(1, notification);
 
-        // Инициализация сети и звука
-        pmrSocket = new PmrSocket("185.221.154.39", 16000);
-        audioEngine = new AudioEngine(pmrSocket);
+        // Инициализация движка звука
+        audioEngine = new AudioEngine(null);
+        
+        // Инициализация сокета (слушаем входящий голос)
+        pmrSocket = new PmrSocket(this, clientId -> {
+            // Отправляем ID говорящего в MainActivity
+            Intent voiceIntent = new Intent("PMR_VOICE_RECEIVED");
+            voiceIntent.putExtra("clientId", clientId);
+            sendBroadcast(voiceIntent);
+        });
+        
         pmrSocket.setAudioEngine(audioEngine);
+        audioEngine.setSocket(pmrSocket);
+        
         pmrSocket.start();
         audioEngine.startPlaying();
 
@@ -43,32 +72,24 @@ public class PmrService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        unregisterReceiver(controlReceiver);
         if (audioEngine != null) {
             audioEngine.stopPlaying();
             audioEngine.stopRecording();
         }
-        if (pmrSocket != null) {
-            pmrSocket.stop();
-        }
+        if (pmrSocket != null) pmrSocket.stop();
     }
 
     @Nullable
     @Override
-    public IBinder onBind(Intent intent) {
-        return null;
-    }
+    public IBinder onBind(Intent intent) { return null; }
 
     private void createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel serviceChannel = new NotificationChannel(
-                    CHANNEL_ID,
-                    "PMR Service Channel",
-                    NotificationManager.IMPORTANCE_LOW
-            );
+                    CHANNEL_ID, "PMR Service Channel", NotificationManager.IMPORTANCE_LOW);
             NotificationManager manager = getSystemService(NotificationManager.class);
-            if (manager != null) {
-                manager.createNotificationChannel(serviceChannel);
-            }
+            if (manager != null) manager.createNotificationChannel(serviceChannel);
         }
     }
 }

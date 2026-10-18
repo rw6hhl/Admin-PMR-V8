@@ -13,7 +13,7 @@ public class AudioEngine {
     private static final int CHANNEL_CONFIG_IN = AudioFormat.CHANNEL_IN_MONO;
     private static final int CHANNEL_CONFIG_OUT = AudioFormat.CHANNEL_OUT_MONO;
     private static final int AUDIO_FORMAT = AudioFormat.ENCODING_PCM_16BIT;
-    private static final int BUFFER_SIZE = 320; // 20ms для 16kHz
+    private static final int BUFFER_SIZE = 320;
 
     private AudioRecord recorder;
     private AudioTrack player;
@@ -24,7 +24,6 @@ public class AudioEngine {
     private PmrSocket socket;
     private G711Ua g711 = new G711Ua();
 
-    // Кольцевой буфер для приёма (100 слотов)
     private final byte[][] ringBuf = new byte[100][324];
     private int ringWriteIdx = 0;
     private int ringReadIdx = 0;
@@ -44,22 +43,23 @@ public class AudioEngine {
         }
     }
 
+    public void setSocket(PmrSocket socket) {
+        this.socket = socket;
+    }
+
     public void startRecording() {
         if (recorder == null || isRecording) return;
         isRecording = true;
         recorder.startRecording();
 
-        recordThread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                byte[] buffer = new byte[BUFFER_SIZE * 2];
-                byte[] encoded = new byte[BUFFER_SIZE];
-                while (isRecording) {
-                    int read = recorder.read(buffer, 0, buffer.length);
-                    if (read > 0) {
-                        g711.encode(buffer, 0, read, encoded);
-                        socket.sendVoiceRaw(encoded); // Отправляем сжатые данные
-                    }
+        recordThread = new Thread(() -> {
+            byte[] buffer = new byte[BUFFER_SIZE * 2];
+            byte[] encoded = new byte[BUFFER_SIZE];
+            while (isRecording) {
+                int read = recorder.read(buffer, 0, buffer.length);
+                if (read > 0 && socket != null) {
+                    g711.encode(buffer, 0, read, encoded);
+                    socket.sendVoiceRaw(encoded);
                 }
             }
         }, "AudioRecordThread");
@@ -79,23 +79,19 @@ public class AudioEngine {
         isPlaying = true;
         player.play();
 
-        playThread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                byte[] pcmData = new byte[BUFFER_SIZE * 2];
-                while (isPlaying) {
-                    synchronized (ringLock) {
-                        if (ringCount > 0) {
-                            byte[] packet = ringBuf[ringReadIdx];
-                            ringReadIdx = (ringReadIdx + 1) % 100;
-                            ringCount--;
-                            // Декодируем G711 в PCM
-                            g711.decode(packet, 4, 320, pcmData); // 320 байт G711 = 640 байт PCM
-                            player.write(pcmData, 0, pcmData.length);
-                        }
+        playThread = new Thread(() -> {
+            byte[] pcmData = new byte[BUFFER_SIZE * 2];
+            while (isPlaying) {
+                synchronized (ringLock) {
+                    if (ringCount > 0) {
+                        byte[] packet = ringBuf[ringReadIdx];
+                        ringReadIdx = (ringReadIdx + 1) % 100;
+                        ringCount--;
+                        g711.decode(packet, 4, 320, pcmData);
+                        player.write(pcmData, 0, pcmData.length);
                     }
-                    try { Thread.sleep(10); } catch (InterruptedException ignored) {}
                 }
+                try { Thread.sleep(10); } catch (InterruptedException ignored) {}
             }
         }, "AudioPlayThread");
         playThread.start();
