@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#6200ee</color>
+    <color name="colorPrimaryDark">#3700b3</color>
+    <color name="colorAccent">#03dac5</color>
+    
+    <!-- Цвета для интерфейса рации -->
+    <color name="colorButton">#03dac5</color>
+    <color name="colorButtonBack">#6c7970</color>
+    <color name="colorback">#4b4b4b</color>
+    <color name="colortextabout">#03dac5</color>
+    <color name="active">#e8c735</color>
+</resources>
