@@ -5,7 +5,10 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Build;
 import android.os.IBinder;
 import androidx.core.app.NotificationCompat;
@@ -25,10 +28,27 @@ public class PmrService extends Service {
         PmrSocket.setChanListListener(listener);
     }
 
+    private BroadcastReceiver controlReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            if ("PMR_START_RECORDING".equals(action)) {
+                if (audioEngine != null) audioEngine.startRecording();
+            } else if ("PMR_STOP_RECORDING".equals(action)) {
+                if (audioEngine != null) audioEngine.stopRecording();
+            }
+        }
+    };
+
     @Override
     public void onCreate() {
         super.onCreate();
-        AppLog.add("PmrService.onCreate() — старт V9.20");
+        AppLog.add("PmrService.onCreate() — старт V9.23");
+
+        IntentFilter filter = new IntentFilter();
+        filter.addAction("PMR_START_RECORDING");
+        filter.addAction("PMR_STOP_RECORDING");
+        registerReceiver(controlReceiver, filter);
 
         pmrSocket = new PmrSocket(getApplicationContext(), null);
         audioEngine = new AudioEngine(getApplicationContext(), pmrSocket);
@@ -49,6 +69,7 @@ public class PmrService extends Service {
     @Override
     public void onDestroy() {
         AppLog.add("PmrService.onDestroy()");
+        unregisterReceiver(controlReceiver);
         if (audioEngine != null) {
             try { audioEngine.stopRecording(); } catch (Exception ignored) {}
             try { audioEngine.stopPlaying(); } catch (Exception ignored) {}
