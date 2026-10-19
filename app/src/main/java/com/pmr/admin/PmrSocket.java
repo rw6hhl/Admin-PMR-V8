@@ -93,6 +93,42 @@ public class PmrSocket {
         AppLog.add("PmrSocket.reload: mail=" + myMailIndex + ", ch=" + myPChannel + ", priznak=" + Priznak_pmr + ", kanal=" + kanalPrd + ", secret=" + kanalSecret);
     }
 
+    public void recreateSocket(Context context) {
+        // Останавливаем старые потоки
+        isRunning = false;
+        try {
+            if (socket != null && !socket.isClosed()) socket.close();
+        } catch (Exception ignored) {}
+        // Перечитываем настройки
+        reloadFromPrefs(context);
+        // Открываем новый сокет
+        try {
+            this.socket = new DatagramSocket(portPrm);
+            this.socket.setSoTimeout(1000);
+            AppLog.add("Сокет пересоздан: порт=" + portPrm + ", канал=" + kanalPrd);
+        } catch (Exception e) {
+            Log.e(TAG, "Error recreate socket: " + e.getMessage());
+            AppLog.add("Ошибка пересоздания сокета: " + e.getMessage());
+            return;
+        }
+        // Запускаем новые потоки
+        isRunning = true;
+        receiveThread = new Thread(() -> {
+            byte[] buffer = new byte[2048];
+            while (isRunning) {
+                try {
+                    DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+                    socket.receive(packet);
+                    byte[] data = new byte[packet.getLength()];
+                    System.arraycopy(packet.getData(), 0, data, 0, packet.getLength());
+                    parsePacket(data);
+                } catch (Exception ignored) {}
+            }
+        }, "PMR-ReceiveThread");
+        receiveThread.start();
+        startPingThread();
+    }
+
     public int getClientNumber() {
         return clientNumber;
     }

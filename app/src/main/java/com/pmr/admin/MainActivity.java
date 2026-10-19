@@ -50,9 +50,9 @@ public class MainActivity extends AppCompatActivity {
         prefs = getSharedPreferences("pmr_prefs", MODE_PRIVATE);
         
         String savedVersion = prefs.getString("app_version", "0");
-        if (!savedVersion.equals("9.31")) {
+        if (!savedVersion.equals("9.32")) {
             prefs.edit()
-                .putString("app_version", "9.31")
+                .putString("app_version", "9.32")
                 .putString("MyMailIndex", "51953")
                 .putString("Priznak_pmr", "26000")
                 .putInt("PORT_prm", 5254)
@@ -62,7 +62,7 @@ public class MainActivity extends AppCompatActivity {
                 .putBoolean("simplex", true)
                 .putBoolean("is_admin_mode", false)
                 .apply();
-            AppLog.add("Настройки сброшены (V9.31)");
+            AppLog.add("Настройки сброшены (V9.32)");
         }
 
         requestMicPermission();
@@ -222,7 +222,7 @@ public class MainActivity extends AppCompatActivity {
             .apply();
         
         if (PmrService.pmrSocket != null) {
-            PmrService.pmrSocket.reloadFromPrefs(this);
+            PmrService.pmrSocket.recreateSocket(this);
         }
         
         updateUI();
