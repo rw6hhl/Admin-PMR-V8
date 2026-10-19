@@ -2,222 +2,103 @@ package com.pmr.admin;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.util.Log;
-import java.io.IOException;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 public class PmrSocket {
-    private static final String TAG = "PmrSocket";
-    private DatagramSocket socket;
-    private InetAddress serverAddr;
-    private boolean isRunning = false;
-    private Thread receiveThread;
-    private Thread pingThread;
-    private AudioEngine audioEngine;
-    
-    private SharedPreferences prefs;
+    public static String IP_SERVER  = "185.221.154.39";
+    public static final String IP_SERVER2 = "109.172.7.155";
+    public static final int PORT_RESERVE = 16300;
+    public static final int PORT_CMD     = 15999;
+    public static final int PORT_CHECK   = 16013;
+    public static int MyMailIndex = 51953;
+    public static int MyPChannel  = 5;
     public static int Priznak_pmr = 26000;
-    private int myMailIndex = 51953;
-    private int portPrm = 5254;
-    private int portPrd = 16000;
-    private int kanalPrd = 13;
-    private int kanalSecret = 0;
 
-    public interface OnVoiceListener {
-        void onVoiceReceived(int clientId);
-    }
-    private OnVoiceListener voiceListener;
+    private final ListFile listFile;
+    private final ChanList chanList;
+    private final ActiveLog activeLog;
+    private final WebLog webLog;
+    private final CmdQueue cmdQueue;
+    private final File filesDir;
+    private final Context appCtx;
 
-    public interface OnChanListListener {
-        void onChanListReceived(List<Integer> ids);
-    }
-    private static OnChanListListener chanListListener;
+    private volatile DatagramSocket sock;
+    private volatile InetAddress serverAddr;
+    private volatile InetAddress serverAddr2;
+    private int port_prm = 5323;
+    private int port_prd = 16000;
+    private int kanal_PRD = 0;
+    private int kanal_Secret = 0;
 
-    public PmrSocket(Context context, OnVoiceListener listener) {
-        this.voiceListener = listener;
-        this.prefs = context.getSharedPreferences("pmr_prefs", Context.MODE_PRIVATE);
-        loadSettings();
-        try {
-            this.serverAddr = InetAddress.getByName("185.221.154.39");
-            this.socket = new DatagramSocket(portPrm);
-            this.socket.setSoTimeout(1000);
-            AppLog.add("Сокет открыт: IP=185.221.154.39, порт=" + portPrm + ", секрет=" + kanalSecret);
-        } catch (Exception e) {
-            Log.e(TAG, "Error init socket: " + e.getMessage());
-            AppLog.add("Ошибка сокета: " + e.getMessage());
-        }
-    }
+    private volatile int active_client_num = -1;
+    private volatile int active_tic = 0;
+    private int KtoActiv = -1;
+    private int KtoTic = 0;
 
-    public static void setChanListListener(OnChanListListener listener) {
-        chanListListener = listener;
-    }
+    private volatile boolean running = false;
+    private Thread threadUdp;
+    private Thread threadTimer;
+    private int activeLogTick = 0;
+    private volatile AudioEngine audioEngine;
 
-    private void loadSettings() {
-        Priznak_pmr = 26000;
-        myMailIndex = 51953;
-        portPrm = 5254;
-        portPrd = 16000;
-        
-        kanalSecret = (myMailIndex & 0xFFFFFFF0) >> 4;
-        
-        int myPChannel = prefs.getInt("current_channel", 1);
-        if (myPChannel == 0) kanalPrd = 0;
-        else kanalPrd = ((myMailIndex & 0xF) * 8) + myPChannel;
-        
-        AppLog.add("Настройки: ID=" + Priznak_pmr + ", Mail=" + myMailIndex + ", Канал=" + kanalPrd + ", Секрет=" + kanalSecret + ", Порт=" + portPrd);
+    public PmrSocket(Context ctx, ListFile lf, ChanList cl, ActiveLog al, WebLog wl, CmdQueue cq, File filesDir) {
+        this.appCtx = ctx;
+        this.listFile = lf;
+        this.chanList = cl;
+        this.activeLog = al;
+        this.webLog = wl;
+        this.cmdQueue = cq;
+        this.filesDir = filesDir;
     }
 
-    public int getKanalSecretInstance() {
-        return kanalSecret;
-    }
-
-    public void setAudioEngine(AudioEngine audioEngine) {
-        this.audioEngine = audioEngine;
-    }
-
-    public void start() {
-        if (isRunning) return;
-        isRunning = true;
-        
-        receiveThread = new Thread(() -> {
-            byte[] buffer = new byte[2048];
-            while (isRunning) {
-                try {
-                    DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-                    socket.receive(packet);
-                    byte[] data = new byte[packet.getLength()];
-                    System.arraycopy(packet.getData(), 0, data, 0, packet.getLength());
-                    parsePacket(data);
-                } catch (Exception ignored) {}
-            }
-        }, "PMR-ReceiveThread");
-        receiveThread.start();
-        
-        startPingThread();
-        
-        new Thread(() -> {
-            try { Thread.sleep(2000); } catch (InterruptedException ignored) {}
-            requestChanList();
-        }).start();
-    }
-
-    private void startPingThread() {
-        pingThread = new Thread(() -> {
-            int cikl = 0;
-            while (isRunning) {
-                try {
-                    byte[] ping = new byte[4];
-                    ping[0] = 7; 
-                    ping[1] = (byte) kanalPrd; 
-                    ping[2] = (byte) (kanalSecret & 0xFF);
-                    ping[3] = (byte) ((kanalSecret >> 8) & 0xFF);
-                    socket.send(new DatagramPacket(ping, 4, serverAddr, portPrd + kanalPrd));
-                    
-                    Thread.sleep(1000);
-                    cikl++;
-                    
-                    if (cikl > 3) {
-                        byte[] priznak = new byte[6];
-                        priznak[0] = 0; 
-                        priznak[1] = (byte) kanalPrd;
-                        priznak[2] = (byte) (Priznak_pmr & 0xFF);
-                        priznak[3] = (byte) ((Priznak_pmr >> 8) & 0xFF);
-                        priznak[4] = (byte) (kanalSecret & 0xFF);
-                        priznak[5] = (byte) ((kanalSecret >> 8) & 0xFF);
-                        socket.send(new DatagramPacket(priznak, 6, serverAddr, portPrd + kanalPrd));
-                        cikl = 0;
-                    }
-                } catch (Exception e) {
-                    Log.e(TAG, "Ping error: " + e.getMessage());
-                }
-            }
-        }, "PMR-PingThread");
-        pingThread.start();
-    }
-
-    private void parsePacket(byte[] data) {
-        if (data.length < 4) return;
-        int command = data[0] & 0xFF;
-        int kanal = data[1] & 0xFF;
-        int client = (data[2] & 0xFF) | ((data[3] & 0xFF) << 8);
-
-        if (kanal != kanalPrd && kanalPrd != 0) return;
-
-        if (command != 22) {
-            AppLog.add("← Входящий: cmd=" + command + ", kanal=" + kanal + ", client=" + client + ", size=" + data.length);
-        }
-
-        if (command == 22 && data.length == 324) {
-            if (audioEngine != null) audioEngine.pushToRingBuffer(data);
-            if (voiceListener != null) voiceListener.onVoiceReceived(client);
-        } else if (command == 234) {
-            parseChanList(data);
-        }
-    }
-
-    private void parseChanList(byte[] data) {
-        List<Integer> ids = new ArrayList<>();
-        int count = (data.length - 4) / 13;
-        for (int i = 0; i < count; i++) {
-            int offset = 4 + (i * 13);
-            int id = (data[offset + 4] & 0xFF) | ((data[offset + 5] & 0xFF) << 8);
-            ids.add(id);
-        }
-        if (chanListListener != null) {
-            chanListListener.onChanListReceived(ids);
-        }
-    }
-
-    public void requestChanList() {
-        if (socket == null || socket.isClosed()) return;
-        try {
-            byte[] cmd = new byte[4];
-            cmd[0] = (byte) 234; 
-            cmd[1] = (byte) kanalPrd;
-            socket.send(new DatagramPacket(cmd, 4, serverAddr, 16013));
-            AppLog.add("→ Отправлено: cmd=234 (запрос списка) на порт 16013");
-        } catch (IOException e) {
-            AppLog.add("Ошибка отправки списка: " + e.getMessage());
-        }
-    }
-
-    public void sendBan(int targetId) {
-        byte[] ban = new byte[4];
-        ban[0] = (byte) 222; 
-        ban[1] = (byte) kanalPrd;
-        ban[2] = (byte) (targetId & 0xFF);
-        ban[3] = (byte) ((targetId >> 8) & 0xFF);
-        try {
-            socket.send(new DatagramPacket(ban, 4, serverAddr, portPrd + kanalPrd));
-            AppLog.add("→ Отправлено: БАН ID=" + targetId);
-        } catch (IOException e) {
-            AppLog.add("Ошибка бана: " + e.getMessage());
-        }
-    }
-
-    public void sendUnban(int targetId) {
-        sendBan(targetId);
-        AppLog.add("→ Отправлено: РАЗБАН (повтор 222) ID=" + targetId);
-    }
-
-    public void stop() {
-        isRunning = false;
-        if (socket != null && !socket.isClosed()) socket.close();
-        AppLog.add("Работа сокета остановлена");
-    }
+    public void setAudioEngine(AudioEngine ae) { this.audioEngine = ae; }
+    public int getActiveClient() { return active_client_num; }
+    public boolean isRunning() { return running && sock != null && serverAddr != null; }
+    public int getPortPrm() { return port_prm; }
+    public int getPortPrd() { return port_prd; }
+    public int getKanalPRD() { return kanal_PRD; }
+    public int getKanalSecret() { return kanal_Secret; }
+    public int getKanalSecretInstance() { return kanal_Secret; }
+    public static int getKanalSecretStatic() { return 0; }
+    public void sendRawPublic(byte[] buf) { sendRaw(buf); }
 
     public void sendVoice(byte[] mainPacket, byte[] reservePacket) {
-        if (socket == null || socket.isClosed()) return;
+        if (mainPacket == null) return;
+        DatagramSocket s = sock;
+        InetAddress a1 = serverAddr;
+        InetAddress a2 = serverAddr2;
+        if (s == null || a1 == null) return;
         try {
-            if (mainPacket != null) {
-                socket.send(new DatagramPacket(mainPacket, mainPacket.length, serverAddr, portPrd + kanalPrd));
+            s.send(new DatagramPacket(mainPacket, mainPacket.length, a1, port_prd + kanal_PRD));
+        } catch (Exception e) {
+            AppLog.add("sendVoice main FAIL: " + e);
+        }
+        if (reservePacket != null) {
+            try {
+                s.send(new DatagramPacket(reservePacket, reservePacket.length, a1, PORT_RESERVE + kanal_PRD));
+            } catch (Exception ignored) {}
+            if (a2 != null) {
+                try {
+                    s.send(new DatagramPacket(reservePacket, reservePacket.length, a2, PORT_RESERVE + kanal_PRD));
+                } catch (Exception ignored) {}
             }
-        } catch (IOException e) {
-            AppLog.add("Ошибка отправки голоса: " + e.getMessage());
         }
     }
+
+    public void reloadFromPrefs(Context ctx) { /* ... */ }
+    public void start() { /* ... */ }
+    public void stop() { /* ... */ }
+    public void sendBan(int client) { /* ... */ }
+    public void sendL() { /* ... */ }
+    public void send260(int v) { /* ... */ }
+    public void sendRename(String text) { /* ... */ }
+    public void sendDelete(int id) { /* ... */ }
+    public void sendList() { /* ... */ }
+    public void processCommand(String raw) { /* ... */ }
 }
