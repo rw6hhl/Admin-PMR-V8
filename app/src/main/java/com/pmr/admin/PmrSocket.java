@@ -152,7 +152,7 @@ public class PmrSocket {
         }
 
         if (command == 22 && data.length == 324) {
-            if (audioEngine != null) audioEngine.pushToRingBuffer(data); // Наш метод для приема
+            if (audioEngine != null) audioEngine.pushToRingBuffer(data);
             if (voiceListener != null) voiceListener.onVoiceReceived(client);
         } else if (command == 234) {
             parseChanList(data);
@@ -178,7 +178,7 @@ public class PmrSocket {
             byte[] cmd = new byte[4];
             cmd[0] = (byte) 234; 
             cmd[1] = (byte) kanalPrd;
-            socket.send(new DatagramPacket(cmd, 4, serverAddr, 16013)); // В V4.2 порт 16013!
+            socket.send(new DatagramPacket(cmd, 4, serverAddr, 16013));
             AppLog.add("→ Отправлено: cmd=234 (запрос списка) на порт 16013");
         } catch (IOException e) {
             AppLog.add("Ошибка отправки списка: " + e.getMessage());
@@ -197,6 +197,11 @@ public class PmrSocket {
         } catch (IOException e) {
             AppLog.add("Ошибка бана: " + e.getMessage());
         }
+    }
+
+    public void sendUnban(int targetId) {
+        sendBan(targetId);
+        AppLog.add("→ Отправлено: РАЗБАН (повтор 222) ID=" + targetId);
     }
 
     public void stop() {

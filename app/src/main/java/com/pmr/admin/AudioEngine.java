@@ -4,6 +4,8 @@ import android.content.Context;
 import android.media.AudioRecord;
 import android.media.AudioTrack;
 import android.util.Log;
+import java.util.LinkedList;
+import java.util.Queue;
 
 public class AudioEngine {
     private static final int BUF_ELEMENTS = 320;
@@ -20,10 +22,36 @@ public class AudioEngine {
     private Thread recorderThread = null;
     private volatile boolean isRecording = false;
     private volatile boolean isPlaying = false;
+    
+    private final Queue<byte[]> ringBuffer = new LinkedList<>();
 
     public AudioEngine(Context ctx, PmrSocket sock) {
         this.appCtx = ctx;
         this.pmrSocket = sock;
+    }
+
+    public boolean isDuplex() { return true; }
+    public void playall() {}
+    public void pauseall() {}
+    public boolean isRecording() { return isRecording; }
+    public boolean isPlaying() { return isPlaying; }
+
+    public void pushToRingBuffer(byte[] packet) {
+        synchronized (ringBuffer) {
+            ringBuffer.offer(packet);
+            if (ringBuffer.size() > 100) ringBuffer.poll();
+        }
+        // Автоматическое воспроизведение из буфера
+        if (!ringBuffer.isEmpty() && isPlaying) {
+            byte[] data = ringBuffer.poll();
+            if (data != null && data.length >= 324) {
+                int client = (data[2] & 0xFF) | ((data[3] & 0xFF) << 8);
+                // Если это G711 16k (cmd=22)
+                if (data[0] == 22) {
+                    playG711_16k(client, data, data.length);
+                }
+            }
+        }
     }
 
     public void startPlaying() {
@@ -62,68 +90,6 @@ public class AudioEngine {
                 tracks[client].write(pcm, 0, 640);
                 if (tracks[client].getPlayState() != 3) tracks[client].play();
             } catch (Exception ignored) {}
-        }
-    }
-
-    public void playG711_8k(int client, byte[] buf, int len) {
-        if (isPlaying && client >= 0 && client < SLOTS_PER_FORMAT) {
-            int slot = client + SLOTS_PER_FORMAT;
-            if (tracks[slot] != null) {
-                byte[] pcm = new byte[BUF_ELEMENTS];
-                g711.decode(buf, 4, 160, pcm);
-                try {
-                    tracks[slot].write(pcm, 0, BUF_ELEMENTS);
-                    if (tracks[slot].getPlayState() != 3) tracks[slot].play();
-                } catch (Exception ignored) {}
-            }
-        }
-    }
-
-    public void playPCM16_16k(int client, byte[] buf, int len) {
-        if (isPlaying && client >= 0 && client < SLOTS_PER_FORMAT && tracks[client] != null) {
-            try {
-                tracks[client].write(buf, 4, 640);
-                if (tracks[client].getPlayState() != 3) tracks[client].play();
-            } catch (Exception ignored) {}
-        }
-    }
-
-    public void playPCM16_8k(int client, byte[] buf, int len) {
-        if (isPlaying && client >= 0 && client < SLOTS_PER_FORMAT) {
-            int slot = client + SLOTS_PER_FORMAT;
-            if (tracks[slot] != null) {
-                try {
-                    tracks[slot].write(buf, 4, BUF_ELEMENTS);
-                    if (tracks[slot].getPlayState() != 3) tracks[slot].play();
-                } catch (Exception ignored) {}
-            }
-        }
-    }
-
-    public void playPCM8_16k(int client, byte[] buf, int len) {
-        if (isPlaying && client >= 0 && client < SLOTS_PER_FORMAT && tracks[client] != null) {
-            short[] pcm = new short[BUF_ELEMENTS];
-            for (int i = 4; i < 324; i++) pcm[i - 4] = (short) (buf[i] * 256);
-            byte[] out = short2byte(pcm);
-            try {
-                tracks[client].write(out, 0, 640);
-                if (tracks[client].getPlayState() != 3) tracks[client].play();
-            } catch (Exception ignored) {}
-        }
-    }
-
-    public void playPCM8_8k(int client, byte[] buf, int len) {
-        if (isPlaying && client >= 0 && client < SLOTS_PER_FORMAT) {
-            int slot = client + SLOTS_PER_FORMAT;
-            if (tracks[slot] != null) {
-                short[] pcm = new short[160];
-                for (int i = 4; i < 164; i++) pcm[i - 4] = (short) (buf[i] * 256);
-                byte[] out = short2byte(pcm);
-                try {
-                    tracks[slot].write(out, 0, BUF_ELEMENTS);
-                    if (tracks[slot].getPlayState() != 3) tracks[slot].play();
-                } catch (Exception ignored) {}
-            }
         }
     }
 
@@ -188,14 +154,5 @@ public class AudioEngine {
                 return;
             }
         }
-    }
-
-    private static byte[] short2byte(short[] sArr) {
-        byte[] bArr = new byte[sArr.length * 2];
-        for (int i = 0; i < sArr.length; i++) {
-            bArr[i * 2] = (byte) (sArr[i] & 255);
-            bArr[i * 2 + 1] = (byte) (sArr[i] >> 8);
-        }
-        return bArr;
     }
 }

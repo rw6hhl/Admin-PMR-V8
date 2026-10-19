@@ -4,13 +4,9 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.Service;
-import android.content.BroadcastReceiver;
-import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.os.Build;
 import android.os.IBinder;
-import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 
 public class PmrService extends Service {
@@ -24,26 +20,10 @@ public class PmrService extends Service {
         PmrSocket.setChanListListener(listener);
     }
 
-    private BroadcastReceiver controlReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            String action = intent.getAction();
-            if ("PMR_START_RECORDING".equals(action)) {
-                if (audioEngine != null) audioEngine.startRecording();
-            } else if ("PMR_STOP_RECORDING".equals(action)) {
-                if (audioEngine != null) audioEngine.stopRecording();
-            }
-        }
-    };
-
     @Override
     public void onCreate() {
         super.onCreate();
         createNotificationChannel();
-        IntentFilter filter = new IntentFilter();
-        filter.addAction("PMR_START_RECORDING");
-        filter.addAction("PMR_STOP_RECORDING");
-        registerReceiver(controlReceiver, filter);
     }
 
     @Override
@@ -61,8 +41,7 @@ public class PmrService extends Service {
             sendBroadcast(voiceIntent);
         });
         
-        // ИСПРАВЛЕНО: конструктор AudioEngine(PmrSocket)
-        audioEngine = new AudioEngine(pmrSocket);
+        audioEngine = new AudioEngine(this, pmrSocket);
         
         pmrSocket.setAudioEngine(audioEngine);
         
@@ -75,7 +54,6 @@ public class PmrService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        unregisterReceiver(controlReceiver);
         if (audioEngine != null) {
             audioEngine.stopPlaying();
             audioEngine.stopRecording();
@@ -84,7 +62,6 @@ public class PmrService extends Service {
         pmrSocket = null;
     }
 
-    @Nullable
     @Override
     public IBinder onBind(Intent intent) { return null; }
 
