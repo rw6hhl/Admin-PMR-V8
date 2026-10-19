@@ -20,7 +20,7 @@ public class PmrSocket {
     private AudioEngine audioEngine;
     
     private SharedPreferences prefs;
-    private int priznakPmr = 26000;
+    public static int Priznak_pmr = 26000;
     private int myMailIndex = 51953;
     private int portPrm = 5254;
     private int portPrd = 16000;
@@ -57,7 +57,7 @@ public class PmrSocket {
     }
 
     private void loadSettings() {
-        priznakPmr = 26000;
+        Priznak_pmr = 26000;
         myMailIndex = 51953;
         portPrm = 5254;
         portPrd = 16000;
@@ -68,7 +68,11 @@ public class PmrSocket {
         if (myPChannel == 0) kanalPrd = 0;
         else kanalPrd = ((myMailIndex & 0xF) * 8) + myPChannel;
         
-        AppLog.add("Настройки: ID=" + priznakPmr + ", Mail=" + myMailIndex + ", Канал=" + kanalPrd + ", Секрет=" + kanalSecret + ", Порт=" + portPrd);
+        AppLog.add("Настройки: ID=" + Priznak_pmr + ", Mail=" + myMailIndex + ", Канал=" + kanalPrd + ", Секрет=" + kanalSecret + ", Порт=" + portPrd);
+    }
+
+    public int getKanalSecretInstance() {
+        return kanalSecret;
     }
 
     public void setAudioEngine(AudioEngine audioEngine) {
@@ -120,8 +124,8 @@ public class PmrSocket {
                         byte[] priznak = new byte[6];
                         priznak[0] = 0; 
                         priznak[1] = (byte) kanalPrd;
-                        priznak[2] = (byte) (priznakPmr & 0xFF);
-                        priznak[3] = (byte) ((priznakPmr >> 8) & 0xFF);
+                        priznak[2] = (byte) (Priznak_pmr & 0xFF);
+                        priznak[3] = (byte) ((Priznak_pmr >> 8) & 0xFF);
                         priznak[4] = (byte) (kanalSecret & 0xFF);
                         priznak[5] = (byte) ((kanalSecret >> 8) & 0xFF);
                         socket.send(new DatagramPacket(priznak, 6, serverAddr, portPrd + kanalPrd));
@@ -148,7 +152,7 @@ public class PmrSocket {
         }
 
         if (command == 22 && data.length == 324) {
-            if (audioEngine != null) audioEngine.pushToRingBuffer(data);
+            if (audioEngine != null) audioEngine.pushToRingBuffer(data); // Наш метод для приема
             if (voiceListener != null) voiceListener.onVoiceReceived(client);
         } else if (command == 234) {
             parseChanList(data);
@@ -174,8 +178,7 @@ public class PmrSocket {
             byte[] cmd = new byte[4];
             cmd[0] = (byte) 234; 
             cmd[1] = (byte) kanalPrd;
-            // ИСПРАВЛЕНО: порт 16013
-            socket.send(new DatagramPacket(cmd, 4, serverAddr, 16013));
+            socket.send(new DatagramPacket(cmd, 4, serverAddr, 16013)); // В V4.2 порт 16013!
             AppLog.add("→ Отправлено: cmd=234 (запрос списка) на порт 16013");
         } catch (IOException e) {
             AppLog.add("Ошибка отправки списка: " + e.getMessage());
@@ -196,28 +199,18 @@ public class PmrSocket {
         }
     }
 
-    public void sendUnban(int targetId) {
-        sendBan(targetId);
-        AppLog.add("→ Отправлено: РАЗБАН (повтор 222) ID=" + targetId);
-    }
-
     public void stop() {
         isRunning = false;
         if (socket != null && !socket.isClosed()) socket.close();
         AppLog.add("Работа сокета остановлена");
     }
 
-    public void sendVoiceRaw(byte[] encodedG711) {
+    public void sendVoice(byte[] mainPacket, byte[] reservePacket) {
         if (socket == null || socket.isClosed()) return;
         try {
-            byte[] packet = new byte[324];
-            packet[0] = 22; 
-            packet[1] = (byte) kanalPrd;
-            packet[2] = (byte) (priznakPmr & 0xFF);
-            packet[3] = (byte) ((priznakPmr >> 8) & 0xFF);
-            int dataLen = Math.min(encodedG711.length, 320);
-            System.arraycopy(encodedG711, 0, packet, 4, dataLen);
-            socket.send(new DatagramPacket(packet, 324, serverAddr, portPrd + kanalPrd));
+            if (mainPacket != null) {
+                socket.send(new DatagramPacket(mainPacket, mainPacket.length, serverAddr, portPrd + kanalPrd));
+            }
         } catch (IOException e) {
             AppLog.add("Ошибка отправки голоса: " + e.getMessage());
         }
