@@ -43,7 +43,11 @@ public class LogActivity extends AppCompatActivity implements AppLog.LogUpdateLi
 
     @Override
     public void onLogUpdated(String newLog) {
+        // Защита от обновления уже уничтоженной Activity (B9.1)
+        if (isFinishing() || isDestroyed()) return;
         runOnUiThread(() -> {
+            if (isFinishing() || isDestroyed()) return;
+            if (tvLogs == null || scrollView == null) return;
             tvLogs.append(newLog + "\n");
             scrollView.post(() -> scrollView.fullScroll(ScrollView.FOCUS_DOWN));
         });

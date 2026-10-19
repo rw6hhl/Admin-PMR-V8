@@ -50,9 +50,9 @@ public class MainActivity extends AppCompatActivity {
         prefs = getSharedPreferences("pmr_prefs", MODE_PRIVATE);
         
         String savedVersion = prefs.getString("app_version", "0");
-        if (!savedVersion.equals("9.32")) {
+        if (!savedVersion.equals("9.33")) {
             prefs.edit()
-                .putString("app_version", "9.32")
+                .putString("app_version", "9.33")
                 .putString("MyMailIndex", "51953")
                 .putString("Priznak_pmr", "26000")
                 .putInt("PORT_prm", 5254)
@@ -62,7 +62,7 @@ public class MainActivity extends AppCompatActivity {
                 .putBoolean("simplex", true)
                 .putBoolean("is_admin_mode", false)
                 .apply();
-            AppLog.add("Настройки сброшены (V9.32)");
+            AppLog.add("Настройки сброшены (V9.33)");
         }
 
         requestMicPermission();
@@ -99,9 +99,9 @@ public class MainActivity extends AppCompatActivity {
         if (requestCode == REQ_MIC) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 AppLog.add("Разрешение на микрофон получено");
-                Intent serviceIntent = new Intent(this, PmrService.class);
-                stopService(serviceIntent);
-                startService(serviceIntent);
+                // Сервис уже запущен в onCreate. Перезапуск не нужен.
+                // AudioEngine.startRecording() создаёт AudioRecord в момент PTT,
+                // когда разрешение уже выдано. Stop/start здесь давал гонку EADDRINUSE.
             } else {
                 AppLog.add("ОШИБКА: Разрешение отклонено!");
             }

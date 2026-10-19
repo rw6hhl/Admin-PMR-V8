@@ -37,16 +37,20 @@ public class ChanAdapter extends RecyclerView.Adapter<ChanAdapter.VH> {
     @Override
     public void onBindViewHolder(@NonNull VH h, int position) {
         ChanListActivity.User user = users.get(position);
+        // Текст устанавливается безусловно (B1.13)
         h.itemText.setText(String.format("%05d %s", user.id, user.call));
-        
-        // ИСПРАВЛЕНО: используем setBackgroundColor вместо setBackgroundTintList
+        // Кнопка: текст и цвет устанавливаются в обеих ветвях (B1.13)
         if (user.isBanned) {
+            h.itemBtnBan.setText("РАЗБАН");
             h.itemBtnBan.setBackgroundColor(ContextCompat.getColor(ctx, android.R.color.holo_red_dark));
         } else {
+            h.itemBtnBan.setText("БАН");
             h.itemBtnBan.setBackgroundColor(ContextCompat.getColor(ctx, android.R.color.holo_green_dark));
         }
-        
-        h.itemBtnBan.setOnClickListener(v -> listener.onBanClick(user, position));
+        h.itemBtnBan.setEnabled(true);
+        h.itemBtnBan.setOnClickListener(v -> {
+            if (listener != null) listener.onBanClick(user, position);
+        });
     }
 
     @Override

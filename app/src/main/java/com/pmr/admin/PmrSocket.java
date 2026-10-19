@@ -94,14 +94,11 @@ public class PmrSocket {
     }
 
     public void recreateSocket(Context context) {
-        // Останавливаем старые потоки
         isRunning = false;
         try {
             if (socket != null && !socket.isClosed()) socket.close();
         } catch (Exception ignored) {}
-        // Перечитываем настройки
         reloadFromPrefs(context);
-        // Открываем новый сокет
         try {
             this.socket = new DatagramSocket(portPrm);
             this.socket.setSoTimeout(1000);
@@ -111,7 +108,6 @@ public class PmrSocket {
             AppLog.add("Ошибка пересоздания сокета: " + e.getMessage());
             return;
         }
-        // Запускаем новые потоки
         isRunning = true;
         receiveThread = new Thread(() -> {
             byte[] buffer = new byte[2048];
@@ -211,10 +207,20 @@ public class PmrSocket {
 
     private void parseChanList(byte[] data) {
         List<Integer> ids = new ArrayList<>();
-        int count = (data.length - 4) / 13;
+        if (data.length < 8) {
+            if (chanListListener != null) chanListListener.onChanListReceived(ids);
+            return;
+        }
+        // Записи списка идут с шагом 13 байт, начиная с offset 4.
+        // Внутри записи ID занимает 2 байта: [offset+4] и [offset+5].
+        int payload = data.length - 4;
+        int count = payload / 13;
         for (int i = 0; i < count; i++) {
             int offset = 4 + (i * 13);
-            int id = (data[offset + 4] & 0xFF) | ((data[offset + 5] & 0xFF) << 8);
+            int idLow = offset + 4;
+            int idHigh = offset + 5;
+            if (idHigh >= data.length) break;
+            int id = (data[idLow] & 0xFF) | ((data[idHigh] & 0xFF) << 8);
             ids.add(id);
         }
         if (chanListListener != null) {
