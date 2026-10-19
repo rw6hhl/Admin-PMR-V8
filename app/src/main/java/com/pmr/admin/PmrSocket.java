@@ -22,7 +22,7 @@ public class PmrSocket {
     private SharedPreferences prefs;
     public static int Priznak_pmr = 26000;
     private int myMailIndex = 51953;
-    private int portPrm = 5254;
+    private int portPrm = 5254; // ВЕРНУЛИ 5254
     private int portPrd = 16000;
     private int kanalPrd = 13;
     private int kanalSecret = 0;
