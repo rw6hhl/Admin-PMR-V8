@@ -3,19 +3,50 @@ package com.pmr.admin;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.Toast;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import java.io.InputStream;
 
 public class SettingsActivity extends AppCompatActivity {
 
     private SharedPreferences prefs;
     private EditText editMailIndex, editPriznak, editPortPrm, editPortPrd, editIp;
     private LinearLayout layoutServerSettings;
-    private Button btnChanList, btnLogs;
+    private Button btnChanList, btnLogs, btnLoadList;
+
+    private final ActivityResultLauncher<String[]> openListLauncher =
+            registerForActivityResult(new ActivityResultContracts.OpenDocument(), uri -> {
+                if (uri == null) {
+                    Toast.makeText(this, "Файл не выбран", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                try {
+                    InputStream is = getContentResolver().openInputStream(uri);
+                    if (is == null) {
+                        Toast.makeText(this, "Не удалось открыть файл", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    int count = NameBook.importFromStream(this, is);
+                    is.close();
+                    if (count == 0) {
+                        Toast.makeText(this, "Файл пуст или неверный формат", Toast.LENGTH_LONG).show();
+                    } else {
+                        Toast.makeText(this, "Загружено имён: " + count, Toast.LENGTH_LONG).show();
+                        AppLog.add("NameBook: загружено имён из list.txt: " + count);
+                    }
+                } catch (Exception e) {
+                    Toast.makeText(this, "Ошибка: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    AppLog.add("NameBook: ошибка загрузки list.txt: " + e.getMessage());
+                }
+            });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,6 +63,11 @@ public class SettingsActivity extends AppCompatActivity {
         layoutServerSettings = findViewById(R.id.layoutServerSettings);
         btnChanList = findViewById(R.id.btnChanList);
         btnLogs = findViewById(R.id.btnLogs);
+        btnLoadList = findViewById(R.id.btnLoadList);
+
+        if (btnLoadList == null) {
+            AppLog.add("ОШИБКА: btnLoadList не найден в activity_settings.xml (кнопка ЗАГРУЗИТЬ list.txt отсутствует)");
+        }
 
         editMailIndex.setText(prefs.getString("MyMailIndex", "51953"));
         editPriznak.setText(prefs.getString("Priznak_pmr", "26000"));
@@ -48,9 +84,19 @@ public class SettingsActivity extends AppCompatActivity {
         });
 
         findViewById(R.id.btnCodecDialog).setOnClickListener(v -> showCodecDialog());
-        
+
         btnChanList.setOnClickListener(v -> startActivity(new Intent(this, ChanListActivity.class)));
         btnLogs.setOnClickListener(v -> startActivity(new Intent(this, LogActivity.class)));
+
+        if (btnLoadList != null) {
+            btnLoadList.setOnClickListener(v -> {
+                try {
+                    openListLauncher.launch(new String[]{"*/*"});
+                } catch (Exception e) {
+                    Toast.makeText(this, "Нет файлового менеджера: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                }
+            });
+        }
 
         findViewById(R.id.btnSaveSettings).setOnClickListener(v -> saveSettings());
     }
