@@ -17,10 +17,18 @@ public class PmrService extends Service {
     public static PmrSocket pmrSocket;
     public static AudioEngine audioEngine;
 
+    public static PmrSocket getPmrSocket() {
+        return pmrSocket;
+    }
+
+    public static void setChanListListener(PmrSocket.OnChanListListener listener) {
+        PmrSocket.setChanListListener(listener);
+    }
+
     @Override
     public void onCreate() {
         super.onCreate();
-        AppLog.add("PmrService.onCreate() — старт V9.19");
+        AppLog.add("PmrService.onCreate() — старт V9.20");
 
         pmrSocket = new PmrSocket(getApplicationContext(), null);
         audioEngine = new AudioEngine(getApplicationContext(), pmrSocket);
