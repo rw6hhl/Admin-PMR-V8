@@ -72,6 +72,27 @@ public class PmrSocket {
         AppLog.add("Настройки: ID=" + Priznak_pmr + ", Mail=" + myMailIndex + ", Канал=" + kanalPrd + ", Секрет=" + kanalSecret + ", Порт=" + portPrd);
     }
 
+    public void reloadFromPrefs(Context context) {
+        SharedPreferences sp = context.getSharedPreferences("pmr_prefs", Context.MODE_PRIVATE);
+        try {
+            myMailIndex = Integer.parseInt(sp.getString("MyMailIndex", "51953"));
+        } catch (Exception ignored) {}
+        try {
+            Priznak_pmr = Integer.parseInt(sp.getString("Priznak_pmr", "26000"));
+        } catch (Exception ignored) {}
+        portPrd = sp.getInt("PORT_prd", 16000);
+        portPrm = sp.getInt("PORT_prm", 5254);
+        try {
+            String ip = sp.getString("ip_server", "185.221.154.39");
+            serverAddr = InetAddress.getByName(ip);
+        } catch (Exception ignored) {}
+        int myPChannel = sp.getInt("current_channel", 1);
+        if (myPChannel == 0) kanalPrd = 0;
+        else kanalPrd = ((myMailIndex & 0xF) * 8) + myPChannel;
+        kanalSecret = (myMailIndex & 0xFFFFFFF0) >> 4;
+        AppLog.add("PmrSocket.reload: mail=" + myMailIndex + ", ch=" + myPChannel + ", priznak=" + Priznak_pmr + ", kanal=" + kanalPrd + ", secret=" + kanalSecret);
+    }
+
     public int getClientNumber() {
         return clientNumber;
     }
