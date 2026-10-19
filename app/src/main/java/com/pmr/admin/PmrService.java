@@ -11,6 +11,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Build;
 import android.os.IBinder;
+import android.os.SystemClock;
 import androidx.core.app.NotificationCompat;
 
 public class PmrService extends Service {
@@ -43,7 +44,7 @@ public class PmrService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-        AppLog.add("PmrService.onCreate() — старт V9.23");
+        AppLog.add("PmrService.onCreate() — старт V9.28");
 
         IntentFilter filter = new IntentFilter();
         filter.addAction("PMR_START_RECORDING");
@@ -75,6 +76,7 @@ public class PmrService extends Service {
             try { audioEngine.stopPlaying(); } catch (Exception ignored) {}
         }
         if (pmrSocket != null) pmrSocket.stop();
+        SystemClock.sleep(200); // задержка, чтобы сокет закрылся
         super.onDestroy();
     }
 

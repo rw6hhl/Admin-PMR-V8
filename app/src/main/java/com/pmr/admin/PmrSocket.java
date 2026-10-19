@@ -26,7 +26,7 @@ public class PmrSocket {
     private int portPrd = 16000;
     private int kanalPrd = 13;
     private int kanalSecret = 0;
-    private String myName = "Admin PMR";
+    private int clientNumber = -1;
 
     public interface OnVoiceListener {
         void onVoiceReceived(int clientId);
@@ -62,7 +62,6 @@ public class PmrSocket {
         myMailIndex = 51953;
         portPrm = 5254;
         portPrd = 16000;
-        myName = prefs.getString("Call", "Admin PMR");
         
         kanalSecret = (myMailIndex & 0xFFFFFFF0) >> 4;
         
@@ -71,6 +70,10 @@ public class PmrSocket {
         else kanalPrd = ((myMailIndex & 0xF) * 8) + myPChannel;
         
         AppLog.add("Настройки: ID=" + Priznak_pmr + ", Mail=" + myMailIndex + ", Канал=" + kanalPrd + ", Секрет=" + kanalSecret + ", Порт=" + portPrd);
+    }
+
+    public int getClientNumber() {
+        return clientNumber;
     }
 
     public int getKanalSecretInstance() {
@@ -109,11 +112,8 @@ public class PmrSocket {
 
     private void startPingThread() {
         pingThread = new Thread(() -> {
-            int cikl = 0;
-            int cikl10 = 0;
             while (isRunning) {
                 try {
-                    // cmd=7 (секрет) раз в 1 секунду
                     byte[] ping = new byte[4];
                     ping[0] = 7; 
                     ping[1] = 0; 
@@ -122,33 +122,6 @@ public class PmrSocket {
                     socket.send(new DatagramPacket(ping, 4, serverAddr, portPrd + kanalPrd));
                     
                     Thread.sleep(1000);
-                    cikl++;
-                    cikl10++;
-                    
-                    // cmd=77 (признак) раз в 10 секунд
-                    if (cikl10 >= 10) {
-                        byte[] priznak = new byte[4];
-                        priznak[0] = 77; 
-                        priznak[1] = 0;
-                        priznak[2] = (byte) (Priznak_pmr & 0xFF);
-                        priznak[3] = (byte) ((Priznak_pmr >> 8) & 0xFF);
-                        socket.send(new DatagramPacket(priznak, 4, serverAddr, portPrd + kanalPrd));
-                        
-                        // cmd=88 (имя) раз в 10 секунд
-                        byte[] nameBytes = myName.getBytes("UTF-8");
-                        byte[] namePacket = new byte[4 + 2 + nameBytes.length + 1];
-                        namePacket[0] = 88; 
-                        namePacket[1] = 0;
-                        namePacket[2] = (byte) (Priznak_pmr & 0xFF);
-                        namePacket[3] = (byte) ((Priznak_pmr >> 8) & 0xFF);
-                        namePacket[4] = (byte) (Priznak_pmr & 0xFF);
-                        namePacket[5] = (byte) ((Priznak_pmr >> 8) & 0xFF);
-                        System.arraycopy(nameBytes, 0, namePacket, 6, nameBytes.length);
-                        namePacket[6 + nameBytes.length] = 0;
-                        socket.send(new DatagramPacket(namePacket, namePacket.length, serverAddr, portPrd + kanalPrd));
-                        
-                        cikl10 = 0;
-                    }
                 } catch (Exception e) {
                     Log.e(TAG, "Ping error: " + e.getMessage());
                 }
@@ -173,7 +146,7 @@ public class PmrSocket {
             if (audioEngine != null) audioEngine.pushToRingBuffer(data);
             if (voiceListener != null) voiceListener.onVoiceReceived(client);
         } else if (command == 110) {
-            AppLog.add("← cmd=110 kanal=" + kanal + ", client=" + client);
+            clientNumber = client;
         } else if (command == 234) {
             parseChanList(data);
         }
