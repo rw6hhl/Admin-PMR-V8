@@ -25,7 +25,7 @@ import androidx.core.content.ContextCompat;
 public class MainActivity extends AppCompatActivity {
     private static final int REQ_MIC = 101;
     private SharedPreferences prefs;
-    private TextView tvChannel, tvIndex, tvMode, tvReceive, tvSpeakingId, tvVersion;
+    private TextView tvChannel, tvIndex, tvSpeakingId, tvVersion;
     private ImageView imgRed;
     private Button btnMenu, btnUp, btnDown, btnSave1, btnSave2, btnSave3, btnSave4, btnSave5, btnCallOrList, btnPTT, btnSecretMode;
     private boolean isAdminMode = false;
@@ -50,9 +50,9 @@ public class MainActivity extends AppCompatActivity {
         prefs = getSharedPreferences("pmr_prefs", MODE_PRIVATE);
         
         String savedVersion = prefs.getString("app_version", "0");
-        if (!savedVersion.equals("9.13")) {
+        if (!savedVersion.equals("9.23")) {
             prefs.edit()
-                .putString("app_version", "9.13")
+                .putString("app_version", "9.23")
                 .putString("MyMailIndex", "51953")
                 .putString("Priznak_pmr", "26000")
                 .putInt("PORT_prm", 5254)
@@ -62,7 +62,7 @@ public class MainActivity extends AppCompatActivity {
                 .putBoolean("simplex", true)
                 .putBoolean("is_admin_mode", false)
                 .apply();
-            AppLog.add("Настройки сброшены (V9.13)");
+            AppLog.add("Настройки сброшены (V9.23)");
         }
 
         requestMicPermission();
@@ -111,8 +111,6 @@ public class MainActivity extends AppCompatActivity {
     private void initViews() {
         tvChannel = findViewById(R.id.textView);
         tvIndex = findViewById(R.id.textView4);
-        tvMode = findViewById(R.id.textView5);
-        tvReceive = findViewById(R.id.textView8);
         tvSpeakingId = findViewById(R.id.tvSpeakingId);
         tvVersion = findViewById(R.id.tvVersion);
         imgRed = findViewById(R.id.imageView);
@@ -153,7 +151,6 @@ public class MainActivity extends AppCompatActivity {
                 currentChannel++;
                 updateUI();
                 prefs.edit().putInt("current_channel", currentChannel).apply();
-                restartService();
             }
         });
 
@@ -162,7 +159,6 @@ public class MainActivity extends AppCompatActivity {
                 currentChannel--;
                 updateUI();
                 prefs.edit().putInt("current_channel", currentChannel).apply();
-                restartService();
             }
         });
 
@@ -194,12 +190,6 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private void restartService() {
-        Intent serviceIntent = new Intent(this, PmrService.class);
-        stopService(serviceIntent);
-        new Handler().postDelayed(() -> startService(serviceIntent), 500);
-    }
-
     private void savePreset(int presetNum) {
         SharedPreferences.Editor editor = prefs.edit();
         editor.putInt("preset_channel_" + presetNum, currentChannel);
@@ -213,25 +203,31 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void loadPreset(int presetNum) {
-        currentChannel = prefs.getInt("preset_channel_" + presetNum, currentChannel);
+        int channel = prefs.getInt("preset_channel_" + presetNum, currentChannel);
+        String index = prefs.getString("preset_index_" + presetNum, prefs.getString("MyMailIndex", "51953"));
+        String priznak = prefs.getString("preset_priznak_" + presetNum, prefs.getString("Priznak_pmr", "26000"));
+        String ip = prefs.getString("preset_ip_" + presetNum, prefs.getString("ip_server", "185.221.154.39"));
+        int codec = prefs.getInt("preset_codec_" + presetNum, prefs.getInt("codec", 3));
+        boolean isSimplex = prefs.getBoolean("preset_simplex_" + presetNum, true);
+        
+        currentChannel = channel;
+        
         prefs.edit()
-            .putInt("current_channel", currentChannel)
-            .putString("MyMailIndex", prefs.getString("preset_index_" + presetNum, prefs.getString("MyMailIndex", "51953")))
-            .putString("Priznak_pmr", prefs.getString("preset_priznak_" + presetNum, prefs.getString("Priznak_pmr", "26000")))
-            .putString("ip_server", prefs.getString("preset_ip_" + presetNum, prefs.getString("ip_server", "185.221.154.39")))
-            .putInt("codec", prefs.getInt("preset_codec_" + presetNum, prefs.getInt("codec", 3)))
-            .putBoolean("simplex", true)
+            .putInt("current_channel", channel)
+            .putString("MyMailIndex", index)
+            .putString("Priznak_pmr", priznak)
+            .putString("ip_server", ip)
+            .putInt("codec", codec)
+            .putBoolean("simplex", isSimplex)
             .apply();
+        
         updateUI();
-        restartService();
         Toast.makeText(this, "Загружена ячейка " + presetNum, Toast.LENGTH_SHORT).show();
     }
 
     private void updateUI() {
         tvChannel.setText(currentChannel == 0 ? "R" : String.valueOf(currentChannel));
         tvIndex.setText(prefs.getString("MyMailIndex", "51953"));
-        tvMode.setText("simplex");
-        tvReceive.setText("No receive"); 
         tvVersion.setText("v" + BuildConfig.VERSION_NAME);
         
         if (isAdminMode) {
