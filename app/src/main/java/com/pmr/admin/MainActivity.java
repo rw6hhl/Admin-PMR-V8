@@ -1,7 +1,6 @@
 package com.pmr.admin;
 
 import android.Manifest;
-import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -26,7 +25,7 @@ import androidx.core.content.ContextCompat;
 public class MainActivity extends AppCompatActivity {
     private static final int REQ_MIC = 101;
     private SharedPreferences prefs;
-    private TextView tvChannel, tvIndex, tvSpeakingId, tvVersion, tvClientNumber;
+    private TextView tvChannel, tvIndex, tvSpeakingId, tvVersion;
     private ImageView imgRed;
     private Button btnMenu, btnUp, btnDown, btnSave1, btnSave2, btnSave3, btnSave4, btnSave5, btnCallOrList, btnPTT, btnSecretMode;
     private boolean isAdminMode = false;
@@ -51,9 +50,9 @@ public class MainActivity extends AppCompatActivity {
         prefs = getSharedPreferences("pmr_prefs", MODE_PRIVATE);
         
         String savedVersion = prefs.getString("app_version", "0");
-        if (!savedVersion.equals("9.29")) {
+        if (!savedVersion.equals("9.30")) {
             prefs.edit()
-                .putString("app_version", "9.29")
+                .putString("app_version", "9.30")
                 .putString("MyMailIndex", "51953")
                 .putString("Priznak_pmr", "26000")
                 .putInt("PORT_prm", 5254)
@@ -63,7 +62,7 @@ public class MainActivity extends AppCompatActivity {
                 .putBoolean("simplex", true)
                 .putBoolean("is_admin_mode", false)
                 .apply();
-            AppLog.add("Настройки сброшены (V9.29)");
+            AppLog.add("Настройки сброшены (V9.30)");
         }
 
         requestMicPermission();
@@ -163,11 +162,11 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        btnSave1.setOnClickListener(v -> showPresetDialog(1));
-        btnSave2.setOnClickListener(v -> showPresetDialog(2));
-        btnSave3.setOnClickListener(v -> showPresetDialog(3));
-        btnSave4.setOnClickListener(v -> showPresetDialog(4));
-        btnSave5.setOnClickListener(v -> showPresetDialog(5));
+        btnSave1.setOnClickListener(v -> loadPreset(1));
+        btnSave2.setOnClickListener(v -> loadPreset(2));
+        btnSave3.setOnClickListener(v -> loadPreset(3));
+        btnSave4.setOnClickListener(v -> loadPreset(4));
+        btnSave5.setOnClickListener(v -> loadPreset(5));
 
         btnSave1.setOnLongClickListener(v -> { savePreset(1); return true; });
         btnSave2.setOnLongClickListener(v -> { savePreset(2); return true; });
@@ -191,25 +190,6 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private void showPresetDialog(int presetNum) {
-        int channel = prefs.getInt("preset_channel_" + presetNum, 1);
-        String index = prefs.getString("preset_index_" + presetNum, prefs.getString("MyMailIndex", "51953"));
-        String priznak = prefs.getString("preset_priznak_" + presetNum, prefs.getString("Priznak_pmr", "26000"));
-        String ip = prefs.getString("preset_ip_" + presetNum, prefs.getString("ip_server", "185.221.154.39"));
-
-        String message = "Канал: " + channel + "\n" +
-                         "Индекс: " + index + "\n" +
-                         "Признак: " + priznak + "\n" +
-                         "IP: " + ip;
-
-        new AlertDialog.Builder(this)
-                .setTitle("Ячейка " + presetNum)
-                .setMessage(message)
-                .setPositiveButton("Загрузить", (dialog, which) -> loadPreset(presetNum))
-                .setNegativeButton("Отмена", null)
-                .show();
-    }
-
     private void savePreset(int presetNum) {
         SharedPreferences.Editor editor = prefs.edit();
         editor.putInt("preset_channel_" + presetNum, currentChannel);
@@ -217,19 +197,38 @@ public class MainActivity extends AppCompatActivity {
         editor.putString("preset_priznak_" + presetNum, prefs.getString("Priznak_pmr", ""));
         editor.putString("preset_ip_" + presetNum, prefs.getString("ip_server", ""));
         editor.apply();
-        Toast.makeText(this, "Сохранено в ячейку " + presetNum, Toast.LENGTH_SHORT).show();
+        
+        String info = "Сохранено в ячейку " + presetNum + ":\n" +
+                "Канал: " + currentChannel + "\n" +
+                "Индекс: " + prefs.getString("MyMailIndex", "") + "\n" +
+                "Признак: " + prefs.getString("Priznak_pmr", "") + "\n" +
+                "IP: " + prefs.getString("ip_server", "");
+        Toast.makeText(this, info, Toast.LENGTH_LONG).show();
     }
 
     private void loadPreset(int presetNum) {
-        currentChannel = prefs.getInt("preset_channel_" + presetNum, currentChannel);
+        int channel = prefs.getInt("preset_channel_" + presetNum, currentChannel);
+        String index = prefs.getString("preset_index_" + presetNum, prefs.getString("MyMailIndex", "51953"));
+        String priznak = prefs.getString("preset_priznak_" + presetNum, prefs.getString("Priznak_pmr", "26000"));
+        String ip = prefs.getString("preset_ip_" + presetNum, prefs.getString("ip_server", "185.221.154.39"));
+        
+        currentChannel = channel;
+        
         prefs.edit()
-            .putInt("current_channel", currentChannel)
-            .putString("MyMailIndex", prefs.getString("preset_index_" + presetNum, prefs.getString("MyMailIndex", "51953")))
-            .putString("Priznak_pmr", prefs.getString("preset_priznak_" + presetNum, prefs.getString("Priznak_pmr", "26000")))
-            .putString("ip_server", prefs.getString("preset_ip_" + presetNum, prefs.getString("ip_server", "185.221.154.39")))
+            .putInt("current_channel", channel)
+            .putString("MyMailIndex", index)
+            .putString("Priznak_pmr", priznak)
+            .putString("ip_server", ip)
             .apply();
+        
         updateUI();
-        Toast.makeText(this, "Загружена ячейка " + presetNum, Toast.LENGTH_SHORT).show();
+        
+        String info = "Загружено из ячейки " + presetNum + ":\n" +
+                "Канал: " + channel + "\n" +
+                "Индекс: " + index + "\n" +
+                "Признак: " + priznak + "\n" +
+                "IP: " + ip;
+        Toast.makeText(this, info, Toast.LENGTH_LONG).show();
     }
 
     private void updateUI() {
