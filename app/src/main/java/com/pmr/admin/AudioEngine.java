@@ -3,9 +3,6 @@ package com.pmr.admin;
 import android.content.Context;
 import android.media.AudioRecord;
 import android.media.AudioTrack;
-import android.util.Log;
-import java.util.LinkedList;
-import java.util.Queue;
 
 public class AudioEngine {
     private static final int BUF_ELEMENTS = 320;
@@ -22,8 +19,6 @@ public class AudioEngine {
     private Thread recorderThread = null;
     private volatile boolean isRecording = false;
     private volatile boolean isPlaying = false;
-    
-    private final Queue<byte[]> ringBuffer = new LinkedList<>();
 
     public AudioEngine(Context ctx, PmrSocket sock) {
         this.appCtx = ctx;
@@ -37,19 +32,10 @@ public class AudioEngine {
     public boolean isPlaying() { return isPlaying; }
 
     public void pushToRingBuffer(byte[] packet) {
-        synchronized (ringBuffer) {
-            ringBuffer.offer(packet);
-            if (ringBuffer.size() > 100) ringBuffer.poll();
-        }
-        // Автоматическое воспроизведение из буфера
-        if (!ringBuffer.isEmpty() && isPlaying) {
-            byte[] data = ringBuffer.poll();
-            if (data != null && data.length >= 324) {
-                int client = (data[2] & 0xFF) | ((data[3] & 0xFF) << 8);
-                // Если это G711 16k (cmd=22)
-                if (data[0] == 22) {
-                    playG711_16k(client, data, data.length);
-                }
+        if (packet != null && packet.length >= 324 && isPlaying) {
+            int client = (packet[2] & 0xFF) | ((packet[3] & 0xFF) << 8);
+            if (packet[0] == 22) {
+                playG711_16k(client, packet, packet.length);
             }
         }
     }

@@ -49,21 +49,20 @@ public class MainActivity extends AppCompatActivity {
         
         prefs = getSharedPreferences("pmr_prefs", MODE_PRIVATE);
         
-        // ПРИНУДИТЕЛЬНЫЙ СБРОС (Версия 9.9)
         String savedVersion = prefs.getString("app_version", "0");
-        if (!savedVersion.equals("9.9")) {
+        if (!savedVersion.equals("9.13")) {
             prefs.edit()
-                .putString("app_version", "9.9")
+                .putString("app_version", "9.13")
                 .putString("MyMailIndex", "51953")
                 .putString("Priznak_pmr", "26000")
                 .putInt("PORT_prm", 5254)
                 .putInt("PORT_prd", 16000)
                 .putString("ip_server", "185.221.154.39")
                 .putInt("current_channel", 1)
-                .putBoolean("simplex", true) // Всегда симплекс
+                .putBoolean("simplex", true)
                 .putBoolean("is_admin_mode", false)
                 .apply();
-            AppLog.add("Настройки сброшены (V9.9)");
+            AppLog.add("Настройки сброшены (V9.13)");
         }
 
         requestMicPermission();
@@ -208,7 +207,7 @@ public class MainActivity extends AppCompatActivity {
         editor.putString("preset_priznak_" + presetNum, prefs.getString("Priznak_pmr", ""));
         editor.putString("preset_ip_" + presetNum, prefs.getString("ip_server", ""));
         editor.putInt("preset_codec_" + presetNum, prefs.getInt("codec", 3));
-        editor.putBoolean("preset_simplex_" + presetNum, true); // Всегда симплекс
+        editor.putBoolean("preset_simplex_" + presetNum, true);
         editor.apply();
         Toast.makeText(this, "Сохранено в ячейку " + presetNum, Toast.LENGTH_SHORT).show();
     }
@@ -221,7 +220,7 @@ public class MainActivity extends AppCompatActivity {
             .putString("Priznak_pmr", prefs.getString("preset_priznak_" + presetNum, prefs.getString("Priznak_pmr", "26000")))
             .putString("ip_server", prefs.getString("preset_ip_" + presetNum, prefs.getString("ip_server", "185.221.154.39")))
             .putInt("codec", prefs.getInt("preset_codec_" + presetNum, prefs.getInt("codec", 3)))
-            .putBoolean("simplex", true) // Всегда симплекс
+            .putBoolean("simplex", true)
             .apply();
         updateUI();
         restartService();
@@ -231,7 +230,7 @@ public class MainActivity extends AppCompatActivity {
     private void updateUI() {
         tvChannel.setText(currentChannel == 0 ? "R" : String.valueOf(currentChannel));
         tvIndex.setText(prefs.getString("MyMailIndex", "51953"));
-        tvMode.setText("simplex"); // Всегда симплекс
+        tvMode.setText("simplex");
         tvReceive.setText("No receive"); 
         tvVersion.setText("v" + BuildConfig.VERSION_NAME);
         
