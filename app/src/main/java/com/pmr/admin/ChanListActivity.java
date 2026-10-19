@@ -13,9 +13,13 @@ public class ChanListActivity extends AppCompatActivity implements PmrSocket.OnC
     public static class User {
         public int id;
         public String call;
+        public String ip;
         public boolean isBanned;
-        public User(int id, String call, boolean isBanned) { 
-            this.id = id; this.call = call; this.isBanned = isBanned; 
+        public User(int id, String call, String ip, boolean isBanned) {
+            this.id = id;
+            this.call = call;
+            this.ip = ip;
+            this.isBanned = isBanned;
         }
     }
 
@@ -29,7 +33,7 @@ public class ChanListActivity extends AppCompatActivity implements PmrSocket.OnC
 
         RecyclerView recyclerView = findViewById(R.id.recyclerChanList);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        
+
         adapter = new ChanAdapter(this, users, (user, position) -> {
             if (PmrService.getPmrSocket() != null) {
                 if (!user.isBanned) {
@@ -49,7 +53,7 @@ public class ChanListActivity extends AppCompatActivity implements PmrSocket.OnC
         recyclerView.setAdapter(adapter);
 
         PmrService.setChanListListener(this);
-        
+
         if (PmrService.getPmrSocket() != null) {
             PmrService.getPmrSocket().requestChanList();
         } else {
@@ -58,12 +62,13 @@ public class ChanListActivity extends AppCompatActivity implements PmrSocket.OnC
     }
 
     @Override
-    public void onChanListReceived(List<Integer> ids) {
+    public void onChanListReceived(List<PmrSocket.ChanEntry> entries) {
         runOnUiThread(() -> {
             if (adapter == null) return;
             users.clear();
-            for (int id : ids) {
-                users.add(new User(id, "Абонент", false));
+            for (PmrSocket.ChanEntry e : entries) {
+                String name = NameBook.getName(this, e.id);
+                users.add(new User(e.id, name, e.ip, e.ban));
             }
             adapter.notifyDataSetChanged();
             AppLog.add("Список обновлен, абонентов: " + users.size());

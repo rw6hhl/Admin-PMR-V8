@@ -163,6 +163,15 @@
             android:visibility="gone" />
 
         <Button
+            android:id="@+id/btnLoadList"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:background="@drawable/roundshapebtn"
+            android:text="ЗАГРУЗИТЬ list.txt"
+            android:textColor="@color/colorButton" />
+
+        <Button
             android:id="@+id/btnLogs"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

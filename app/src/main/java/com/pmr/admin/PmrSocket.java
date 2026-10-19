@@ -18,7 +18,7 @@ public class PmrSocket {
     private Thread receiveThread;
     private Thread pingThread;
     private AudioEngine audioEngine;
-    
+
     private SharedPreferences prefs;
     public static int Priznak_pmr = 26000;
     private int myMailIndex = 51953;
@@ -33,8 +33,17 @@ public class PmrSocket {
     }
     private OnVoiceListener voiceListener;
 
+    public static class ChanEntry {
+        public int id;
+        public String ip;
+        public boolean ban;
+        public ChanEntry(int id, String ip, boolean ban) {
+            this.id = id; this.ip = ip; this.ban = ban;
+        }
+    }
+
     public interface OnChanListListener {
-        void onChanListReceived(List<Integer> ids);
+        void onChanListReceived(List<ChanEntry> entries);
     }
     private static OnChanListListener chanListListener;
 
@@ -62,13 +71,13 @@ public class PmrSocket {
         myMailIndex = 51953;
         portPrm = 5254;
         portPrd = 16000;
-        
+
         kanalSecret = (myMailIndex & 0xFFFFFFF0) >> 4;
-        
+
         int myPChannel = prefs.getInt("current_channel", 1);
         if (myPChannel == 0) kanalPrd = 0;
         else kanalPrd = ((myMailIndex & 0xF) * 8) + myPChannel;
-        
+
         AppLog.add("Настройки: ID=" + Priznak_pmr + ", Mail=" + myMailIndex + ", Канал=" + kanalPrd + ", Секрет=" + kanalSecret + ", Порт=" + portPrd);
     }
 
@@ -140,7 +149,7 @@ public class PmrSocket {
     public void start() {
         if (isRunning) return;
         isRunning = true;
-        
+
         receiveThread = new Thread(() -> {
             byte[] buffer = new byte[2048];
             while (isRunning) {
@@ -154,13 +163,9 @@ public class PmrSocket {
             }
         }, "PMR-ReceiveThread");
         receiveThread.start();
-        
+
         startPingThread();
-        
-        new Thread(() -> {
-            try { Thread.sleep(2000); } catch (InterruptedException ignored) {}
-            requestChanList();
-        }).start();
+        // Автозапрос cmd=234 убран по требованию (A1.8). Запрос — при открытии списка.
     }
 
     private void startPingThread() {
@@ -168,12 +173,12 @@ public class PmrSocket {
             while (isRunning) {
                 try {
                     byte[] ping = new byte[4];
-                    ping[0] = 7; 
-                    ping[1] = 0; 
+                    ping[0] = 7;
+                    ping[1] = 0;
                     ping[2] = (byte) (kanalSecret & 0xFF);
                     ping[3] = (byte) ((kanalSecret >> 8) & 0xFF);
                     socket.send(new DatagramPacket(ping, 4, serverAddr, portPrd + kanalPrd));
-                    
+
                     Thread.sleep(1000);
                 } catch (Exception e) {
                     Log.e(TAG, "Ping error: " + e.getMessage());
@@ -200,31 +205,32 @@ public class PmrSocket {
             if (voiceListener != null) voiceListener.onVoiceReceived(client);
         } else if (command == 110) {
             clientNumber = client;
+            // При изменении количества — запрос списка (как в admin.c, case 'n')
+            requestChanList();
         } else if (command == 234) {
             parseChanList(data);
         }
     }
 
     private void parseChanList(byte[] data) {
-        List<Integer> ids = new ArrayList<>();
-        if (data.length < 8) {
-            if (chanListListener != null) chanListListener.onChanListReceived(ids);
-            return;
-        }
-        // Записи списка идут с шагом 13 байт, начиная с offset 4.
-        // Внутри записи ID занимает 2 байта: [offset+4] и [offset+5].
+        List<ChanEntry> entries = new ArrayList<>();
         int payload = data.length - 4;
         int count = payload / 13;
         for (int i = 0; i < count; i++) {
             int offset = 4 + (i * 13);
-            int idLow = offset + 4;
-            int idHigh = offset + 5;
-            if (idHigh >= data.length) break;
-            int id = (data[idLow] & 0xFF) | ((data[idHigh] & 0xFF) << 8);
-            ids.add(id);
+            if (offset + 12 >= data.length) break;
+            // Структура CLI из admin.c: i(2), cod(2), Id(2), port(2), ip(4), ban(1) = 13 байт
+            int id = (data[offset + 4] & 0xFF) | ((data[offset + 5] & 0xFF) << 8);
+            int ip0 = data[offset + 8] & 0xFF;
+            int ip1 = data[offset + 9] & 0xFF;
+            int ip2 = data[offset + 10] & 0xFF;
+            int ip3 = data[offset + 11] & 0xFF;
+            String ip = ip0 + "." + ip1 + "." + ip2 + "." + ip3;
+            boolean ban = (data[offset + 12] & 0xFF) != 0;
+            entries.add(new ChanEntry(id, ip, ban));
         }
         if (chanListListener != null) {
-            chanListListener.onChanListReceived(ids);
+            chanListListener.onChanListReceived(entries);
         }
     }
 
@@ -232,7 +238,7 @@ public class PmrSocket {
         if (socket == null || socket.isClosed()) return;
         try {
             byte[] cmd = new byte[4];
-            cmd[0] = (byte) 234; 
+            cmd[0] = (byte) 234;
             cmd[1] = 0;
             socket.send(new DatagramPacket(cmd, 4, serverAddr, portPrd + kanalPrd));
             AppLog.add("→ Отправлено: cmd=234 (запрос списка) на порт " + (portPrd + kanalPrd));
@@ -243,7 +249,7 @@ public class PmrSocket {
 
     public void sendBan(int targetId) {
         byte[] ban = new byte[4];
-        ban[0] = (byte) 222; 
+        ban[0] = (byte) 222;
         ban[1] = 0;
         ban[2] = (byte) (targetId & 0xFF);
         ban[3] = (byte) ((targetId >> 8) & 0xFF);

@@ -12,6 +12,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import java.util.List;
 
 public class ChanAdapter extends RecyclerView.Adapter<ChanAdapter.VH> {
+    private static final int MAX_NAME_LEN = 16;
     private final Context ctx;
     private final List<ChanListActivity.User> users;
     private final OnBanClickListener listener;
@@ -37,9 +38,12 @@ public class ChanAdapter extends RecyclerView.Adapter<ChanAdapter.VH> {
     @Override
     public void onBindViewHolder(@NonNull VH h, int position) {
         ChanListActivity.User user = users.get(position);
-        // Текст устанавливается безусловно (B1.13)
-        h.itemText.setText(String.format("%05d %s", user.id, user.call));
-        // Кнопка: текст и цвет устанавливаются в обеих ветвях (B1.13)
+        String name = user.call == null ? "" : user.call.trim();
+        if (name.length() > MAX_NAME_LEN) {
+            name = name.substring(0, MAX_NAME_LEN - 1) + "…";
+        }
+        // Формат как на фото: "26001 Георгиевск" (B1.13 — безусловно)
+        h.itemText.setText(String.format("%05d %s", user.id, name));
         if (user.isBanned) {
             h.itemBtnBan.setText("РАЗБАН");
             h.itemBtnBan.setBackgroundColor(ContextCompat.getColor(ctx, android.R.color.holo_red_dark));

@@ -43,7 +43,7 @@ public class PmrService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-        AppLog.add("PmrService.onCreate() — старт V9.33");
+        AppLog.add("PmrService.onCreate() — старт V9.35");
 
         IntentFilter filter = new IntentFilter();
         filter.addAction("PMR_START_RECORDING");
