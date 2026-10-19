@@ -3,94 +3,76 @@ package com.pmr.admin;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.Service;
-import android.content.BroadcastReceiver;
-import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.os.Build;
 import android.os.IBinder;
 import androidx.core.app.NotificationCompat;
 
 public class PmrService extends Service {
-    private static final String CHANNEL_ID = "PMR_Service_Channel";
-    private static PmrSocket pmrSocket;
-    private AudioEngine audioEngine;
+    public static final String CHANNEL_ID = "pmr_admin_ch";
+    public static final int NOTIF_ID = 1;
 
-    public static PmrSocket getPmrSocket() { return pmrSocket; }
-
-    public static void setChanListListener(PmrSocket.OnChanListListener listener) {
-        PmrSocket.setChanListListener(listener);
-    }
-
-    private BroadcastReceiver controlReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            String action = intent.getAction();
-            if ("PMR_START_RECORDING".equals(action)) {
-                if (audioEngine != null) audioEngine.startRecording();
-            } else if ("PMR_STOP_RECORDING".equals(action)) {
-                if (audioEngine != null) audioEngine.stopRecording();
-            }
-        }
-    };
+    public static PmrSocket pmrSocket;
+    public static AudioEngine audioEngine;
 
     @Override
     public void onCreate() {
         super.onCreate();
-        createNotificationChannel();
-        IntentFilter filter = new IntentFilter();
-        filter.addAction("PMR_START_RECORDING");
-        filter.addAction("PMR_STOP_RECORDING");
-        registerReceiver(controlReceiver, filter);
+        AppLog.add("PmrService.onCreate() — старт V9.19");
+
+        pmrSocket = new PmrSocket(getApplicationContext(), null);
+        audioEngine = new AudioEngine(getApplicationContext(), pmrSocket);
+        pmrSocket.setAudioEngine(audioEngine);
+        audioEngine.startPlaying();
+        pmrSocket.start();
+
+        createChannel();
+        startForeground(NOTIF_ID, buildNotification());
+        AppLog.add("PmrService: служба запущена, аудио инициализировано");
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle("PMR Radio")
-                .setContentText("Работа в фоне...")
-                .setSmallIcon(R.drawable.wktpaint1icon)
-                .build();
-        startForeground(1, notification);
-
-        pmrSocket = new PmrSocket(this, clientId -> {
-            Intent voiceIntent = new Intent("PMR_VOICE_RECEIVED");
-            voiceIntent.putExtra("clientId", clientId);
-            sendBroadcast(voiceIntent);
-        });
-        
-        audioEngine = new AudioEngine(this, pmrSocket);
-        
-        pmrSocket.setAudioEngine(audioEngine);
-        
-        pmrSocket.start();
-        audioEngine.startPlaying();
-
         return START_STICKY;
     }
 
     @Override
     public void onDestroy() {
-        super.onDestroy();
-        unregisterReceiver(controlReceiver);
+        AppLog.add("PmrService.onDestroy()");
         if (audioEngine != null) {
-            audioEngine.stopPlaying();
-            audioEngine.stopRecording();
+            try { audioEngine.stopRecording(); } catch (Exception ignored) {}
+            try { audioEngine.stopPlaying(); } catch (Exception ignored) {}
         }
         if (pmrSocket != null) pmrSocket.stop();
-        pmrSocket = null;
+        super.onDestroy();
     }
 
     @Override
     public IBinder onBind(Intent intent) { return null; }
 
-    private void createNotificationChannel() {
+    private void createChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel serviceChannel = new NotificationChannel(
-                    CHANNEL_ID, "PMR Service Channel", NotificationManager.IMPORTANCE_LOW);
-            NotificationManager manager = getSystemService(NotificationManager.class);
-            if (manager != null) manager.createNotificationChannel(serviceChannel);
+            NotificationChannel ch = new NotificationChannel(
+                    CHANNEL_ID,
+                    getString(R.string.app_name),
+                    NotificationManager.IMPORTANCE_LOW);
+            NotificationManager nm = getSystemService(NotificationManager.class);
+            if (nm != null) nm.createNotificationChannel(ch);
         }
+    }
+
+    private Notification buildNotification() {
+        Intent i = new Intent(this, MainActivity.class);
+        PendingIntent pi = PendingIntent.getActivity(
+                this, 0, i, PendingIntent.FLAG_IMMUTABLE);
+        return new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle(getString(R.string.app_name))
+                .setContentText("Работа в фоне...")
+                .setSmallIcon(android.R.drawable.stat_sys_data_bluetooth)
+                .setContentIntent(pi)
+                .setOngoing(true)
+                .build();
     }
 }
