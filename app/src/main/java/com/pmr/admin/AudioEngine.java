@@ -61,6 +61,17 @@ public class AudioEngine {
     public boolean isDuplex() { return true; }
     public int getLastRxRms() { return lastRxRms; }
 
+    // === МЕТОД ДЛЯ ПРИЕМА (вызывается из PmrSocket) ===
+    public void pushToRingBuffer(byte[] packet) {
+        if (packet != null && packet.length >= 324 && isPlaying) {
+            int client = (packet[2] & 0xFF) | ((packet[3] & 0xFF) << 8);
+            if (packet[0] == 22) {
+                playG711_16k(client, packet, packet.length);
+            }
+        }
+    }
+    // ===================================================
+
     public void startPlaying() {
         if (isPlaying) return;
         running_play = true;
