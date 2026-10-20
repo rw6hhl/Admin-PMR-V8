@@ -165,7 +165,6 @@ public class PmrSocket {
         receiveThread.start();
 
         startPingThread();
-        // Автозапрос cmd=234 убран по требованию (A1.8). Запрос — при открытии списка.
     }
 
     private void startPingThread() {
@@ -239,9 +238,13 @@ public class PmrSocket {
         try {
             byte[] cmd = new byte[4];
             cmd[0] = (byte) 234;
-            cmd[1] = 0;
-            socket.send(new DatagramPacket(cmd, 4, serverAddr, portPrd + kanalPrd));
-            AppLog.add("→ Отправлено: cmd=234 (запрос списка) на порт " + (portPrd + kanalPrd));
+            cmd[1] = 13;   // как в admin.c: kanal = 13
+            cmd[2] = 0;
+            cmd[3] = 0;
+            // как в admin.c: PORT_prd + kanal_PRD, где kanal_PRD = 13 для списка
+            int listPort = portPrd + 13;
+            socket.send(new DatagramPacket(cmd, 4, serverAddr, listPort));
+            AppLog.add("→ Отправлено: cmd=234 (запрос списка) на порт " + listPort + ", kanal=13");
         } catch (IOException e) {
             AppLog.add("Ошибка отправки списка: " + e.getMessage());
         }
