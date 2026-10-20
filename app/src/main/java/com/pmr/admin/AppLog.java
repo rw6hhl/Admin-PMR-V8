@@ -20,6 +20,7 @@ public class AppLog {
     private static File currentLogFile;
     private static boolean verbose = true;
     private static final Object fileLock = new Object();
+    private static boolean initialized = false;
 
     public interface LogUpdateListener {
         void onLogUpdated(String newLog);
@@ -40,13 +41,20 @@ public class AppLog {
 
     public static synchronized void init(Context ctx) {
         if (ctx == null) return;
+        if (initialized && currentLogFile != null) {
+            add("AppLog: init уже выполнен, файл=" + currentLogFile.getName());
+            return;
+        }
+        initialized = true;
         try {
             File dir = new File(ctx.getFilesDir(), "logs");
             if (!dir.exists()) dir.mkdirs();
             int maxN = 0;
             File[] files = dir.listFiles();
+            StringBuilder sb = new StringBuilder("AppLog: init — файлы в logs/: ");
             if (files != null) {
                 for (File f : files) {
+                    sb.append(f.getName()).append(" ");
                     String name = f.getName();
                     if (name.startsWith("log_") && name.endsWith(".txt")) {
                         try {
@@ -56,9 +64,17 @@ public class AppLog {
                     }
                 }
             }
-            currentLogFile = new File(dir, "log_" + (maxN + 1) + ".txt");
+            add("AppLog: " + sb.toString());
+            int nextN = maxN + 1;
+            File candidate = new File(dir, "log_" + nextN + ".txt");
+            while (candidate.exists()) {
+                nextN++;
+                candidate = new File(dir, "log_" + nextN + ".txt");
+            }
+            currentLogFile = candidate;
             if (!currentLogFile.exists()) currentLogFile.createNewFile();
-            add("AppLog: init, файл = " + currentLogFile.getAbsolutePath());
+            add("AppLog: init — выбран файл " + currentLogFile.getName()
+                    + " (maxN=" + maxN + ", nextN=" + nextN + ")");
         } catch (Exception e) {
             add("AppLog: ошибка init — " + e.getMessage());
         }
@@ -75,7 +91,6 @@ public class AppLog {
         logs.add(logLine);
         if (logs.size() > 2000) logs.remove(0);
 
-        // запись в файл
         if (currentLogFile != null) {
             synchronized (fileLock) {
                 try {

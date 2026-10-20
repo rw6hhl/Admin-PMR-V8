@@ -124,6 +124,10 @@ public class PmrSocket {
         try {
             if (socket != null && !socket.isClosed()) socket.close();
         } catch (Exception ignored) {}
+        if (receiveThread != null) {
+            try { receiveThread.join(500); } catch (Exception ignored) {}
+        }
+        try { Thread.sleep(100); } catch (Exception ignored) {}
         reloadFromPrefs(context);
         try {
             this.socket = new DatagramSocket(portPrm);
@@ -286,6 +290,10 @@ public class PmrSocket {
     }
 
     public void sendBan(int targetId) {
+        if (socket == null || socket.isClosed()) {
+            AppLog.add("PmrSocket: sendBan — сокет null/closed, пропуск (id=" + targetId + ")");
+            return;
+        }
         byte[] ban = new byte[4];
         ban[0] = (byte) 222;
         ban[1] = 0;
