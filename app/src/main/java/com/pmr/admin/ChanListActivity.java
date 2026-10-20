@@ -44,15 +44,17 @@ public class ChanListActivity extends AppCompatActivity implements PmrSocket.OnC
         adapter = new ChanAdapter(this, users, (user, position) -> {
             AppLog.add("ChanListActivity: кнопка БАН/РАЗБАН — id=" + user.id + ", isBanned=" + user.isBanned);
             if (PmrService.getPmrSocket() != null) {
-                if (!user.isBanned) {
-                    PmrService.getPmrSocket().sendBan(user.id);
-                    user.isBanned = true;
-                    Toast.makeText(this, "Бан: " + user.id, Toast.LENGTH_SHORT).show();
-                } else {
-                    PmrService.getPmrSocket().sendUnban(user.id);
-                    user.isBanned = false;
-                    Toast.makeText(this, "Разбан: " + user.id, Toast.LENGTH_SHORT).show();
-                }
+                // Сетевые операции (sendBan/sendUnban) в фоновом потоке
+                new Thread(() -> {
+                    if (!user.isBanned) {
+                        PmrService.getPmrSocket().sendBan(user.id);
+                    } else {
+                        PmrService.getPmrSocket().sendUnban(user.id);
+                    }
+                }).start();
+                
+                user.isBanned = !user.isBanned;
+                Toast.makeText(this, (user.isBanned ? "Бан: " : "Разбан: ") + user.id, Toast.LENGTH_SHORT).show();
                 adapter.notifyItemChanged(position);
             } else {
                 AppLog.add("ChanListActivity: pmrSocket == null — сервис не запущен");
@@ -66,8 +68,14 @@ public class ChanListActivity extends AppCompatActivity implements PmrSocket.OnC
         AppLog.add("ChanListActivity: setChanListListener(this)");
 
         if (PmrService.getPmrSocket() != null) {
-            AppLog.add("ChanListActivity: requestChanList()");
-            PmrService.getPmrSocket().requestChanList();
+            AppLog.add("ChanListActivity: requestChanList() в фоновом потоке");
+            new Thread(() -> {
+                try {
+                    PmrService.getPmrSocket().requestChanList();
+                } catch (Exception e) {
+                    AppLog.add("ChanListActivity: ошибка requestChanList в фоне — " + e.getMessage());
+                }
+            }).start();
         } else {
             AppLog.add("ChanListActivity: pmrSocket == null — запрос списка невозможен (список из lastChanList)");
             Toast.makeText(this, "Сервис еще не запущен", Toast.LENGTH_SHORT).show();
