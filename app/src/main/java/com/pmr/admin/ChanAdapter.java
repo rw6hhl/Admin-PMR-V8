@@ -1,6 +1,8 @@
 package com.pmr.admin;
 
 import android.content.Context;
+import android.graphics.Color;
+import android.graphics.Typeface;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -16,6 +18,7 @@ public class ChanAdapter extends RecyclerView.Adapter<ChanAdapter.VH> {
     private final Context ctx;
     private final List<ChanListActivity.User> users;
     private final OnBanClickListener listener;
+    private int activeClient = -1;
 
     public interface OnBanClickListener {
         void onBanClick(ChanListActivity.User user, int position);
@@ -25,6 +28,17 @@ public class ChanAdapter extends RecyclerView.Adapter<ChanAdapter.VH> {
         this.ctx = ctx;
         this.users = users;
         this.listener = listener;
+    }
+
+    public void setActiveClient(int clientId) {
+        if (this.activeClient == clientId) return;
+        int old = this.activeClient;
+        this.activeClient = clientId;
+        for (int i = 0; i < users.size(); i++) {
+            if (users.get(i).id == old || users.get(i).id == clientId) {
+                notifyItemChanged(i);
+            }
+        }
     }
 
     @NonNull
@@ -42,8 +56,18 @@ public class ChanAdapter extends RecyclerView.Adapter<ChanAdapter.VH> {
         if (name.length() > MAX_NAME_LEN) {
             name = name.substring(0, MAX_NAME_LEN - 1) + "…";
         }
-        // Формат как на фото: "26001 Георгиевск" (B1.13 — безусловно)
         h.itemText.setText(String.format("%05d %s", user.id, name));
+        
+        // Подсветка активного абонента (красный жирный)
+        if (user.id == activeClient) {
+            h.itemText.setTextColor(Color.RED);
+            h.itemText.setTypeface(null, Typeface.BOLD);
+        } else {
+            h.itemText.setTextColor(Color.WHITE);
+            h.itemText.setTypeface(null, Typeface.NORMAL);
+        }
+
+        // Кнопка БАН/РАЗБАН
         if (user.isBanned) {
             h.itemBtnBan.setText("РАЗБАН");
             h.itemBtnBan.setBackgroundColor(ContextCompat.getColor(ctx, android.R.color.holo_red_dark));

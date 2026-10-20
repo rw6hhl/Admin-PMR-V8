@@ -77,7 +77,7 @@ public class NameBook {
         int lineNo = 0;
         while ((line = br.readLine()) != null) {
             lineNo++;
-            line = line.trim();
+            line = line.replace("\uFEFF", "").trim(); // BOM-фикс
             if (line.isEmpty() || line.startsWith("#")) continue;
             String idStr;
             String name;

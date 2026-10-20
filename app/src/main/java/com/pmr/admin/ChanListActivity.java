@@ -8,7 +8,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ChanListActivity extends AppCompatActivity implements PmrSocket.OnChanListListener {
+public class ChanListActivity extends AppCompatActivity implements PmrSocket.OnChanListListener, PmrSocket.OnVoiceListener {
 
     public static class User {
         public int id;
@@ -35,7 +35,7 @@ public class ChanListActivity extends AppCompatActivity implements PmrSocket.OnC
 
         RecyclerView recyclerView = findViewById(R.id.recyclerChanList);
         if (recyclerView == null) {
-            AppLog.add("ChanListActivity: ОШИБКА — recyclerChanList не найден в activity_chan_list.xml");
+            AppLog.add("ChanListActivity: ОШИБКА — recyclerChanList не найден");
             finish();
             return;
         }
@@ -44,7 +44,6 @@ public class ChanListActivity extends AppCompatActivity implements PmrSocket.OnC
         adapter = new ChanAdapter(this, users, (user, position) -> {
             AppLog.add("ChanListActivity: кнопка БАН/РАЗБАН — id=" + user.id + ", isBanned=" + user.isBanned);
             if (PmrService.getPmrSocket() != null) {
-                // Сетевые операции (sendBan/sendUnban) в фоновом потоке
                 new Thread(() -> {
                     if (!user.isBanned) {
                         PmrService.getPmrSocket().sendBan(user.id);
@@ -65,7 +64,8 @@ public class ChanListActivity extends AppCompatActivity implements PmrSocket.OnC
         AppLog.add("ChanListActivity: adapter установлен");
 
         PmrService.setChanListListener(this);
-        AppLog.add("ChanListActivity: setChanListListener(this)");
+        PmrService.setVoiceListener(this);
+        AppLog.add("ChanListActivity: setChanListListener + setVoiceListener");
 
         if (PmrService.getPmrSocket() != null) {
             AppLog.add("ChanListActivity: requestChanList() в фоновом потоке");
@@ -77,7 +77,7 @@ public class ChanListActivity extends AppCompatActivity implements PmrSocket.OnC
                 }
             }).start();
         } else {
-            AppLog.add("ChanListActivity: pmrSocket == null — запрос списка невозможен (список из lastChanList)");
+            AppLog.add("ChanListActivity: pmrSocket == null — запрос списка невозможен");
             Toast.makeText(this, "Сервис еще не запущен", Toast.LENGTH_SHORT).show();
         }
     }
@@ -91,10 +91,18 @@ public class ChanListActivity extends AppCompatActivity implements PmrSocket.OnC
             for (PmrSocket.ChanEntry e : entries) {
                 String name = NameBook.getName(this, e.id);
                 users.add(new User(e.id, name, e.ip, e.ban));
-                AppLog.add("ChanListActivity:   id=" + e.id + ", name=" + name + ", ip=" + e.ip + ", ban=" + e.ban);
             }
             adapter.notifyDataSetChanged();
             AppLog.add("ChanListActivity: Список обновлён, абонентов: " + users.size());
+        });
+    }
+
+    @Override
+    public void onVoiceReceived(int clientId) {
+        runOnUiThread(() -> {
+            if (adapter != null) {
+                adapter.setActiveClient(clientId);
+            }
         });
     }
 
@@ -103,5 +111,6 @@ public class ChanListActivity extends AppCompatActivity implements PmrSocket.OnC
         super.onDestroy();
         AppLog.add("ChanListActivity: onDestroy — setChanListListener(null)");
         PmrService.setChanListListener(null);
+        PmrService.setVoiceListener(null);
     }
 }

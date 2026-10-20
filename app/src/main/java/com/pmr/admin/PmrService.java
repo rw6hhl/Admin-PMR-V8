@@ -28,6 +28,12 @@ public class PmrService extends Service {
         PmrSocket.setChanListListener(listener);
     }
 
+    public static void setVoiceListener(PmrSocket.OnVoiceListener listener) {
+        if (pmrSocket != null) {
+            pmrSocket.setVoiceListener(listener);
+        }
+    }
+
     private BroadcastReceiver controlReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -45,7 +51,7 @@ public class PmrService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-        AppLog.add("PmrService: onCreate — старт V9.44");
+        AppLog.add("PmrService: onCreate — старт V9.45");
 
         IntentFilter filter = new IntentFilter();
         filter.addAction("PMR_START_RECORDING");
