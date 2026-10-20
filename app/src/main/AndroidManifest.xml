@@ -23,10 +23,18 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".SettingsActivity" android:screenOrientation="portrait" />
-        <activity android:name=".PasswordActivity" android:screenOrientation="portrait" />
-        <activity android:name=".ChanListActivity" android:screenOrientation="portrait" />
-        <activity android:name=".LogActivity" android:screenOrientation="portrait" />
+        <activity android:name=".SettingsActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+        <activity android:name=".PasswordActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+        <activity android:name=".ChanListActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+        <activity android:name=".LogActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
 
         <service android:name=".PmrService" android:foregroundServiceType="microphone" />
 

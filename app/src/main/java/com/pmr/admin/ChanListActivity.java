@@ -29,10 +29,16 @@ public class ChanListActivity extends AppCompatActivity implements PmrSocket.OnC
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        AppLog.add("ChanListActivity: onCreate — старт");
         setContentView(R.layout.activity_chan_list);
-        AppLog.add("ChanListActivity: onCreate");
+        AppLog.add("ChanListActivity: setContentView OK");
 
         RecyclerView recyclerView = findViewById(R.id.recyclerChanList);
+        if (recyclerView == null) {
+            AppLog.add("ChanListActivity: ОШИБКА — recyclerChanList не найден в activity_chan_list.xml");
+            finish();
+            return;
+        }
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
         adapter = new ChanAdapter(this, users, (user, position) -> {
@@ -54,6 +60,7 @@ public class ChanListActivity extends AppCompatActivity implements PmrSocket.OnC
             }
         });
         recyclerView.setAdapter(adapter);
+        AppLog.add("ChanListActivity: adapter установлен");
 
         PmrService.setChanListListener(this);
         AppLog.add("ChanListActivity: setChanListListener(this)");
@@ -62,7 +69,7 @@ public class ChanListActivity extends AppCompatActivity implements PmrSocket.OnC
             AppLog.add("ChanListActivity: requestChanList()");
             PmrService.getPmrSocket().requestChanList();
         } else {
-            AppLog.add("ChanListActivity: pmrSocket == null — запрос списка невозможен");
+            AppLog.add("ChanListActivity: pmrSocket == null — запрос списка невозможен (список из lastChanList)");
             Toast.makeText(this, "Сервис еще не запущен", Toast.LENGTH_SHORT).show();
         }
     }

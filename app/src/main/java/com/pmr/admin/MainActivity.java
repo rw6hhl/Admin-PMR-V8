@@ -54,9 +54,9 @@ public class MainActivity extends AppCompatActivity {
         AppLog.add("MainActivity: onCreate");
 
         String savedVersion = prefs.getString("app_version", "0");
-        if (!savedVersion.equals("9.41")) {
+        if (!savedVersion.equals("9.42")) {
             prefs.edit()
-                .putString("app_version", "9.41")
+                .putString("app_version", "9.42")
                 .putString("MyMailIndex", "51953")
                 .putString("Priznak_pmr", "26000")
                 .putInt("PORT_prm", 5253)
@@ -66,7 +66,7 @@ public class MainActivity extends AppCompatActivity {
                 .putBoolean("simplex", true)
                 .putBoolean("is_admin_mode", false)
                 .apply();
-            AppLog.add("MainActivity: Настройки сброшены (V9.41): Priznak=26000, Mail=51953, Ch=4, PORT_prm=5253, PORT_prd=16000");
+            AppLog.add("MainActivity: Настройки сброшены (V9.42): Priznak=26000, Mail=51953, Ch=4, PORT_prm=5253, PORT_prd=16000");
         }
 
         requestMicPermission();
@@ -312,6 +312,7 @@ public class MainActivity extends AppCompatActivity {
         super.onDestroy();
         AppLog.add("MainActivity: onDestroy");
         if (wakeLock != null && wakeLock.isHeld()) wakeLock.release();
-        stopService(new Intent(this, PmrService.class));
+        // stopService УБРАН (V9.42): сервис START_STICKY живёт сам.
+        // Если остановить здесь — ChanListActivity упадёт (pmrSocket == null).
     }
 }
