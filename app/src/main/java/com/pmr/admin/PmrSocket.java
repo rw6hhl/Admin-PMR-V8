@@ -47,6 +47,7 @@ public class PmrSocket {
         void onChanListReceived(List<ChanEntry> entries);
     }
     private static OnChanListListener chanListListener;
+    private static List<ChanEntry> lastChanList = new ArrayList<>();
 
     public PmrSocket(Context context, OnVoiceListener listener) {
         this.voiceListener = listener;
@@ -65,7 +66,12 @@ public class PmrSocket {
 
     public static void setChanListListener(OnChanListListener listener) {
         chanListListener = listener;
-        AppLog.add("PmrSocket: setChanListListener " + (listener == null ? "null" : listener.getClass().getSimpleName()));
+        AppLog.add("PmrSocket: setChanListListener " + (listener == null ? "null" : listener.getClass().getSimpleName())
+                + ", lastChanList.size=" + lastChanList.size());
+        if (listener != null && !lastChanList.isEmpty()) {
+            AppLog.add("PmrSocket: отдаю lastChanList (size=" + lastChanList.size() + ") в Activity сразу");
+            listener.onChanListReceived(lastChanList);
+        }
     }
 
     private void loadSettings() {
@@ -221,9 +227,11 @@ public class PmrSocket {
             if (audioEngine != null) audioEngine.pushToRingBuffer(data);
             if (voiceListener != null) voiceListener.onVoiceReceived(client);
         } else if (command == 110) {
-            clientNumber = client;
-            AppLog.add("PmrSocket: cmd=110 — количество в канале=" + client + " → requestChanList");
-            requestChanList();
+            if (clientNumber != client) {
+                AppLog.add("PmrSocket: cmd=110 — количество изменилось " + clientNumber + " → " + client + " → requestChanList");
+                clientNumber = client;
+                requestChanList();
+            }
         } else if (command == 234) {
             parseChanList(data);
         }
@@ -248,10 +256,13 @@ public class PmrSocket {
             entries.add(new ChanEntry(id, ip, ban));
             AppLog.add("PmrSocket:   запись #" + i + " — id=" + id + ", ip=" + ip + ", ban=" + ban);
         }
+
+        lastChanList = entries;
+
         if (chanListListener != null) {
             chanListListener.onChanListReceived(entries);
         } else {
-            AppLog.add("PmrSocket: chanListListener == null, список не передан в Activity");
+            AppLog.add("PmrSocket: chanListListener == null, список сохранён в lastChanList (size=" + entries.size() + ")");
         }
     }
 
