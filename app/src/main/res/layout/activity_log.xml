@@ -38,6 +38,16 @@
             android:textColor="@color/colorButton" />
 
         <Button
+            android:id="@+id/btnSendLog"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginLeft="8dp"
+            android:background="@drawable/roundshapebtn"
+            android:text="ОТПРАВИТЬ ЛОГ"
+            android:textColor="@color/colorButton" />
+
+        <Button
             android:id="@+id/btnClearLogs"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
