@@ -48,15 +48,15 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        AppLog.init(getApplicationContext());
+        AppLog.init(getApplicationContext(), BuildConfig.VERSION_NAME);
 
         prefs = getSharedPreferences("pmr_prefs", MODE_PRIVATE);
         AppLog.add("MainActivity: onCreate");
 
         String savedVersion = prefs.getString("app_version", "0");
-        if (!savedVersion.equals("9.42")) {
+        if (!savedVersion.equals("9.43")) {
             prefs.edit()
-                .putString("app_version", "9.42")
+                .putString("app_version", "9.43")
                 .putString("MyMailIndex", "51953")
                 .putString("Priznak_pmr", "26000")
                 .putInt("PORT_prm", 5253)
@@ -66,7 +66,7 @@ public class MainActivity extends AppCompatActivity {
                 .putBoolean("simplex", true)
                 .putBoolean("is_admin_mode", false)
                 .apply();
-            AppLog.add("MainActivity: Настройки сброшены (V9.42): Priznak=26000, Mail=51953, Ch=4, PORT_prm=5253, PORT_prd=16000");
+            AppLog.add("MainActivity: Настройки сброшены (V9.43): Priznak=26000, Mail=51953, Ch=4, PORT_prm=5253, PORT_prd=16000");
         }
 
         requestMicPermission();
@@ -144,8 +144,15 @@ public class MainActivity extends AppCompatActivity {
         btnCallOrList.setOnClickListener(v -> {
             AppLog.add("MainActivity: нажата CALL/LIST, isAdminMode=" + isAdminMode);
             if (isAdminMode) {
-                AppLog.add("MainActivity: открываю ChanListActivity");
-                startActivity(new Intent(this, ChanListActivity.class));
+                try {
+                    AppLog.add("MainActivity: открываю ChanListActivity");
+                    startActivity(new Intent(this, ChanListActivity.class));
+                    AppLog.add("MainActivity: startActivity(ChanListActivity) — OK");
+                } catch (Exception e) {
+                    AppLog.add("MainActivity: ОШИБКА startActivity(ChanListActivity) — "
+                            + e.getClass().getSimpleName() + ": " + e.getMessage());
+                    Toast.makeText(this, "Ошибка: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                }
             } else {
                 Toast.makeText(this, "Вызов (CALL)", Toast.LENGTH_SHORT).show();
             }
@@ -313,6 +320,5 @@ public class MainActivity extends AppCompatActivity {
         AppLog.add("MainActivity: onDestroy");
         if (wakeLock != null && wakeLock.isHeld()) wakeLock.release();
         // stopService УБРАН (V9.42): сервис START_STICKY живёт сам.
-        // Если остановить здесь — ChanListActivity упадёт (pmrSocket == null).
     }
 }

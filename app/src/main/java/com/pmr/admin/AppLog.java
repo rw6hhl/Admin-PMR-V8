@@ -39,7 +39,7 @@ public class AppLog {
         return verbose;
     }
 
-    public static synchronized void init(Context ctx) {
+    public static synchronized void init(Context ctx, String versionName) {
         if (ctx == null) return;
         if (initialized && currentLogFile != null) {
             add("AppLog: init уже выполнен, файл=" + currentLogFile.getName());
@@ -49,6 +49,7 @@ public class AppLog {
         try {
             File dir = new File(ctx.getFilesDir(), "logs");
             if (!dir.exists()) dir.mkdirs();
+            String prefix = "log_v" + versionName + "_";
             int maxN = 0;
             File[] files = dir.listFiles();
             StringBuilder sb = new StringBuilder("AppLog: init — файлы в logs/: ");
@@ -56,9 +57,10 @@ public class AppLog {
                 for (File f : files) {
                     sb.append(f.getName()).append(" ");
                     String name = f.getName();
-                    if (name.startsWith("log_") && name.endsWith(".txt")) {
+                    if (name.startsWith(prefix) && name.endsWith(".txt")) {
                         try {
-                            int n = Integer.parseInt(name.substring(4, name.length() - 4));
+                            String numStr = name.substring(prefix.length(), name.length() - 4);
+                            int n = Integer.parseInt(numStr);
                             if (n > maxN) maxN = n;
                         } catch (Exception ignored) {}
                     }
@@ -66,15 +68,15 @@ public class AppLog {
             }
             add("AppLog: " + sb.toString());
             int nextN = maxN + 1;
-            File candidate = new File(dir, "log_" + nextN + ".txt");
+            File candidate = new File(dir, prefix + nextN + ".txt");
             while (candidate.exists()) {
                 nextN++;
-                candidate = new File(dir, "log_" + nextN + ".txt");
+                candidate = new File(dir, prefix + nextN + ".txt");
             }
             currentLogFile = candidate;
             if (!currentLogFile.exists()) currentLogFile.createNewFile();
             add("AppLog: init — выбран файл " + currentLogFile.getName()
-                    + " (maxN=" + maxN + ", nextN=" + nextN + ")");
+                    + " (prefix=" + prefix + ", maxN=" + maxN + ", nextN=" + nextN + ")");
         } catch (Exception e) {
             add("AppLog: ошибка init — " + e.getMessage());
         }
