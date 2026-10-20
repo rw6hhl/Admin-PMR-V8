@@ -64,6 +64,11 @@ public class PmrSocket {
         }
     }
 
+    public void setVoiceListener(OnVoiceListener listener) {
+        this.voiceListener = listener;
+        AppLog.add("PmrSocket: setVoiceListener " + (listener == null ? "null" : listener.getClass().getSimpleName()));
+    }
+
     public static void setChanListListener(OnChanListListener listener) {
         chanListListener = listener;
         AppLog.add("PmrSocket: setChanListListener " + (listener == null ? "null" : listener.getClass().getSimpleName())

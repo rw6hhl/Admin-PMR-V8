@@ -150,6 +150,15 @@
             android:text="Вести подробный лог"
             android:textColor="@color/colortextabout"
             android:checked="true"
+            android:layout_marginBottom="8dp" />
+
+        <CheckBox
+            android:id="@+id/cbSoundEnabled"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Звук кнопок (тон 1500 Гц)"
+            android:textColor="@color/colortextabout"
+            android:checked="true"
             android:layout_marginBottom="16dp" />
 
         <Button

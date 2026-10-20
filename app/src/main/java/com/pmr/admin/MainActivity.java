@@ -7,6 +7,10 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
+import android.graphics.Typeface;
+import android.media.AudioManager;
+import android.media.ToneGenerator;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.PowerManager;
@@ -31,14 +35,28 @@ public class MainActivity extends AppCompatActivity {
     private boolean isAdminMode = false;
     private PowerManager.WakeLock wakeLock;
     private int currentChannel = 4;
+    private ToneGenerator toneGen;
+    private boolean soundEnabled = true;
+    private final Handler resetHandler = new Handler();
+    private final Runnable resetSpeakingId = () -> {
+        tvSpeakingId.setText("");
+        tvSpeakingId.setTextColor(Color.BLACK);
+        tvSpeakingId.setTypeface(null, Typeface.NORMAL);
+    };
 
     private BroadcastReceiver voiceReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             int clientId = intent.getIntExtra("clientId", -1);
             if (clientId != -1) {
-                AppLog.add("MainActivity: PMR_VOICE_RECEIVED clientId=" + clientId);
-                tvSpeakingId.setText(String.valueOf(clientId));
+                String name = NameBook.getName(MainActivity.this, clientId);
+                String text = String.format("%05d %s", clientId, name);
+                AppLog.add("MainActivity: PMR_VOICE_RECEIVED clientId=" + clientId + ", text=" + text);
+                tvSpeakingId.setText(text);
+                tvSpeakingId.setTextColor(Color.RED);
+                tvSpeakingId.setTypeface(null, Typeface.BOLD);
+                resetHandler.removeCallbacks(resetSpeakingId);
+                resetHandler.postDelayed(resetSpeakingId, 3000);
             }
         }
     };
@@ -53,10 +71,17 @@ public class MainActivity extends AppCompatActivity {
         prefs = getSharedPreferences("pmr_prefs", MODE_PRIVATE);
         AppLog.add("MainActivity: onCreate");
 
+        soundEnabled = prefs.getBoolean("sound_enabled", true);
+        try {
+            toneGen = new ToneGenerator(AudioManager.STREAM_NOTIFICATION, 80);
+        } catch (Exception e) {
+            AppLog.add("MainActivity: ToneGenerator ошибка — " + e.getMessage());
+        }
+
         String savedVersion = prefs.getString("app_version", "0");
-        if (!savedVersion.equals("9.43")) {
+        if (!savedVersion.equals("9.46")) {
             prefs.edit()
-                .putString("app_version", "9.43")
+                .putString("app_version", "9.46")
                 .putString("MyMailIndex", "51953")
                 .putString("Priznak_pmr", "26000")
                 .putInt("PORT_prm", 5253)
@@ -66,7 +91,7 @@ public class MainActivity extends AppCompatActivity {
                 .putBoolean("simplex", true)
                 .putBoolean("is_admin_mode", false)
                 .apply();
-            AppLog.add("MainActivity: Настройки сброшены (V9.43): Priznak=26000, Mail=51953, Ch=4, PORT_prm=5253, PORT_prd=16000");
+            AppLog.add("MainActivity: Настройки сброшены (V9.46): Priznak=26000, Mail=51953, Ch=4, PORT_prm=5253, PORT_prd=16000");
         }
 
         requestMicPermission();
@@ -91,6 +116,13 @@ public class MainActivity extends AppCompatActivity {
             Intent serviceIntent = new Intent(this, PmrService.class);
             startService(serviceIntent);
         }, 500);
+    }
+
+    private void beep() {
+        if (!soundEnabled || toneGen == null) return;
+        try {
+            toneGen.startTone(ToneGenerator.TONE_PROP_BEEP, 100);
+        } catch (Exception ignored) {}
     }
 
     private void requestMicPermission() {
@@ -137,11 +169,13 @@ public class MainActivity extends AppCompatActivity {
 
     private void setupListeners() {
         btnMenu.setOnClickListener(v -> {
+            beep();
             AppLog.add("MainActivity: нажата MENU → SettingsActivity");
             startActivity(new Intent(this, SettingsActivity.class));
         });
 
         btnCallOrList.setOnClickListener(v -> {
+            beep();
             AppLog.add("MainActivity: нажата CALL/LIST, isAdminMode=" + isAdminMode);
             if (isAdminMode) {
                 try {
@@ -159,6 +193,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
         btnSecretMode.setOnClickListener(v -> {
+            beep();
             isAdminMode = !isAdminMode;
             prefs.edit().putBoolean("is_admin_mode", isAdminMode).apply();
             AppLog.add("MainActivity: переключение режима → isAdminMode=" + isAdminMode);
@@ -167,6 +202,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
         btnUp.setOnClickListener(v -> {
+            beep();
             if (currentChannel < 8) {
                 int old = currentChannel;
                 currentChannel++;
@@ -177,6 +213,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
         btnDown.setOnClickListener(v -> {
+            beep();
             if (currentChannel > 0) {
                 int old = currentChannel;
                 currentChannel--;
@@ -186,21 +223,22 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        btnSave1.setOnClickListener(v -> loadPreset(1));
-        btnSave2.setOnClickListener(v -> loadPreset(2));
-        btnSave3.setOnClickListener(v -> loadPreset(3));
-        btnSave4.setOnClickListener(v -> loadPreset(4));
-        btnSave5.setOnClickListener(v -> loadPreset(5));
+        btnSave1.setOnClickListener(v -> { beep(); loadPreset(1); });
+        btnSave2.setOnClickListener(v -> { beep(); loadPreset(2); });
+        btnSave3.setOnClickListener(v -> { beep(); loadPreset(3); });
+        btnSave4.setOnClickListener(v -> { beep(); loadPreset(4); });
+        btnSave5.setOnClickListener(v -> { beep(); loadPreset(5); });
 
-        btnSave1.setOnLongClickListener(v -> { savePreset(1); return true; });
-        btnSave2.setOnLongClickListener(v -> { savePreset(2); return true; });
-        btnSave3.setOnLongClickListener(v -> { savePreset(3); return true; });
-        btnSave4.setOnLongClickListener(v -> { savePreset(4); return true; });
-        btnSave5.setOnLongClickListener(v -> { savePreset(5); return true; });
+        btnSave1.setOnLongClickListener(v -> { beep(); savePreset(1); return true; });
+        btnSave2.setOnLongClickListener(v -> { beep(); savePreset(2); return true; });
+        btnSave3.setOnLongClickListener(v -> { beep(); savePreset(3); return true; });
+        btnSave4.setOnLongClickListener(v -> { beep(); savePreset(4); return true; });
+        btnSave5.setOnLongClickListener(v -> { beep(); savePreset(5); return true; });
 
         btnPTT.setOnTouchListener((v, event) -> {
             switch (event.getAction()) {
                 case MotionEvent.ACTION_DOWN:
+                    beep();
                     AppLog.add("MainActivity: PTT ACTION_DOWN");
                     imgRed.setVisibility(View.VISIBLE);
                     sendBroadcast(new Intent("PMR_START_RECORDING"));
@@ -300,6 +338,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        soundEnabled = prefs.getBoolean("sound_enabled", true);
         isAdminMode = prefs.getBoolean("is_admin_mode", false);
         currentChannel = prefs.getInt("current_channel", 4);
         AppLog.add("MainActivity: onResume, isAdminMode=" + isAdminMode + ", currentChannel=" + currentChannel);
@@ -318,7 +357,11 @@ public class MainActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         AppLog.add("MainActivity: onDestroy");
+        resetHandler.removeCallbacks(resetSpeakingId);
+        if (toneGen != null) {
+            try { toneGen.release(); } catch (Exception ignored) {}
+            toneGen = null;
+        }
         if (wakeLock != null && wakeLock.isHeld()) wakeLock.release();
-        // stopService УБРАН (V9.42): сервис START_STICKY живёт сам.
     }
 }

@@ -22,7 +22,7 @@ public class SettingsActivity extends AppCompatActivity {
     private EditText editMailIndex, editPriznak, editPortPrm, editPortPrd, editIp;
     private LinearLayout layoutServerSettings;
     private Button btnChanList, btnLogs, btnLoadList;
-    private CheckBox cbVerboseLog;
+    private CheckBox cbVerboseLog, cbSoundEnabled;
 
     private final ActivityResultLauncher<String[]> openListLauncher =
             registerForActivityResult(new ActivityResultContracts.OpenDocument(), uri -> {
@@ -34,7 +34,7 @@ public class SettingsActivity extends AppCompatActivity {
                 try {
                     InputStream is = getContentResolver().openInputStream(uri);
                     if (is == null) {
-                        AppLog.add("SettingsActivity: list.txt — openInputStream вернул null, uri=" + uri);
+                        AppLog.add("SettingsActivity: list.txt — openInputStream вернул null");
                         Toast.makeText(this, "Не удалось открыть файл", Toast.LENGTH_SHORT).show();
                         return;
                     }
@@ -71,13 +71,7 @@ public class SettingsActivity extends AppCompatActivity {
         btnLogs = findViewById(R.id.btnLogs);
         btnLoadList = findViewById(R.id.btnLoadList);
         cbVerboseLog = findViewById(R.id.cbVerboseLog);
-
-        if (btnLoadList == null) {
-            AppLog.add("SettingsActivity: ОШИБКА — btnLoadList не найден в activity_settings.xml");
-        }
-        if (cbVerboseLog == null) {
-            AppLog.add("SettingsActivity: ОШИБКА — cbVerboseLog не найден в activity_settings.xml");
-        }
+        cbSoundEnabled = findViewById(R.id.cbSoundEnabled);
 
         editMailIndex.setText(prefs.getString("MyMailIndex", "51953"));
         editPriznak.setText(prefs.getString("Priznak_pmr", "26000"));
@@ -91,6 +85,14 @@ public class SettingsActivity extends AppCompatActivity {
                 prefs.edit().putBoolean("verbose_log", checked).apply();
                 AppLog.setVerbose(checked);
                 AppLog.add("SettingsActivity: verbose_log=" + checked);
+            });
+        }
+
+        if (cbSoundEnabled != null) {
+            cbSoundEnabled.setChecked(prefs.getBoolean("sound_enabled", true));
+            cbSoundEnabled.setOnCheckedChangeListener((b, checked) -> {
+                prefs.edit().putBoolean("sound_enabled", checked).apply();
+                AppLog.add("SettingsActivity: sound_enabled=" + checked);
             });
         }
 
