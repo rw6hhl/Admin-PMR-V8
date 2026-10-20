@@ -30,11 +30,13 @@ public class ChanListActivity extends AppCompatActivity implements PmrSocket.OnC
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_chan_list);
+        AppLog.add("ChanListActivity: onCreate");
 
         RecyclerView recyclerView = findViewById(R.id.recyclerChanList);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
         adapter = new ChanAdapter(this, users, (user, position) -> {
+            AppLog.add("ChanListActivity: кнопка БАН/РАЗБАН — id=" + user.id + ", isBanned=" + user.isBanned);
             if (PmrService.getPmrSocket() != null) {
                 if (!user.isBanned) {
                     PmrService.getPmrSocket().sendBan(user.id);
@@ -47,37 +49,44 @@ public class ChanListActivity extends AppCompatActivity implements PmrSocket.OnC
                 }
                 adapter.notifyItemChanged(position);
             } else {
+                AppLog.add("ChanListActivity: pmrSocket == null — сервис не запущен");
                 Toast.makeText(this, "Сервис не запущен", Toast.LENGTH_SHORT).show();
             }
         });
         recyclerView.setAdapter(adapter);
 
         PmrService.setChanListListener(this);
+        AppLog.add("ChanListActivity: setChanListListener(this)");
 
         if (PmrService.getPmrSocket() != null) {
+            AppLog.add("ChanListActivity: requestChanList()");
             PmrService.getPmrSocket().requestChanList();
         } else {
+            AppLog.add("ChanListActivity: pmrSocket == null — запрос списка невозможен");
             Toast.makeText(this, "Сервис еще не запущен", Toast.LENGTH_SHORT).show();
         }
     }
 
     @Override
     public void onChanListReceived(List<PmrSocket.ChanEntry> entries) {
+        AppLog.add("ChanListActivity: onChanListReceived — записей=" + entries.size());
         runOnUiThread(() -> {
             if (adapter == null) return;
             users.clear();
             for (PmrSocket.ChanEntry e : entries) {
                 String name = NameBook.getName(this, e.id);
                 users.add(new User(e.id, name, e.ip, e.ban));
+                AppLog.add("ChanListActivity:   id=" + e.id + ", name=" + name + ", ip=" + e.ip + ", ban=" + e.ban);
             }
             adapter.notifyDataSetChanged();
-            AppLog.add("Список обновлен, абонентов: " + users.size());
+            AppLog.add("ChanListActivity: Список обновлён, абонентов: " + users.size());
         });
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        AppLog.add("ChanListActivity: onDestroy — setChanListListener(null)");
         PmrService.setChanListListener(null);
     }
 }

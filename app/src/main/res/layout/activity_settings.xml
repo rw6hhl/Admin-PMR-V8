@@ -143,6 +143,15 @@
             </LinearLayout>
         </LinearLayout>
 
+        <CheckBox
+            android:id="@+id/cbVerboseLog"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Вести подробный лог"
+            android:textColor="@color/colortextabout"
+            android:checked="true"
+            android:layout_marginBottom="16dp" />
+
         <Button
             android:id="@+id/btnCodecDialog"
             android:layout_width="match_parent"

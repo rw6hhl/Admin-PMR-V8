@@ -27,6 +27,7 @@ public class PmrSocket {
     private int kanalPrd = 13;
     private int kanalSecret = 0;
     private int clientNumber = -1;
+    private int pingCount = 0;
 
     public interface OnVoiceListener {
         void onVoiceReceived(int clientId);
@@ -55,15 +56,16 @@ public class PmrSocket {
             this.serverAddr = InetAddress.getByName("185.221.154.39");
             this.socket = new DatagramSocket(portPrm);
             this.socket.setSoTimeout(1000);
-            AppLog.add("Сокет открыт: IP=185.221.154.39, порт=" + portPrm + ", секрет=" + kanalSecret);
+            AppLog.add("PmrSocket: Сокет открыт, порт=" + portPrm + ", IP=" + serverAddr.getHostAddress());
         } catch (Exception e) {
             Log.e(TAG, "Error init socket: " + e.getMessage());
-            AppLog.add("Ошибка сокета: " + e.getMessage());
+            AppLog.add("PmrSocket: ОШИБКА сокета — " + e.getMessage());
         }
     }
 
     public static void setChanListListener(OnChanListListener listener) {
         chanListListener = listener;
+        AppLog.add("PmrSocket: setChanListListener " + (listener == null ? "null" : listener.getClass().getSimpleName()));
     }
 
     private void loadSettings() {
@@ -82,7 +84,9 @@ public class PmrSocket {
         if (myPChannel == 0) kanalPrd = 0;
         else kanalPrd = ((myMailIndex & 0xF) * 8) + myPChannel;
 
-        AppLog.add("Настройки: ID=" + Priznak_pmr + ", Mail=" + myMailIndex + ", Канал=" + kanalPrd + ", Секрет=" + kanalSecret + ", Порт=" + portPrd + ", PORT_prm=" + portPrm);
+        AppLog.add("PmrSocket: loadSettings — ID=" + Priznak_pmr + ", Mail=" + myMailIndex
+                + ", Ch=" + myPChannel + ", kanal=" + kanalPrd
+                + ", secret=" + kanalSecret + ", PORT_prm=" + portPrm + ", PORT_prd=" + portPrd);
     }
 
     public void reloadFromPrefs(Context context) {
@@ -103,10 +107,13 @@ public class PmrSocket {
         if (myPChannel == 0) kanalPrd = 0;
         else kanalPrd = ((myMailIndex & 0xF) * 8) + myPChannel;
         kanalSecret = (myMailIndex & 0xFFFFFFF0) >> 4;
-        AppLog.add("PmrSocket.reload: mail=" + myMailIndex + ", ch=" + myPChannel + ", priznak=" + Priznak_pmr + ", kanal=" + kanalPrd + ", secret=" + kanalSecret + ", portPrm=" + portPrm);
+        AppLog.add("PmrSocket: reloadFromPrefs — mail=" + myMailIndex + ", ch=" + myPChannel
+                + ", priznak=" + Priznak_pmr + ", kanal=" + kanalPrd
+                + ", secret=" + kanalSecret + ", PORT_prm=" + portPrm + ", PORT_prd=" + portPrd);
     }
 
     public void recreateSocket(Context context) {
+        AppLog.add("PmrSocket: recreateSocket — старт");
         isRunning = false;
         try {
             if (socket != null && !socket.isClosed()) socket.close();
@@ -115,10 +122,10 @@ public class PmrSocket {
         try {
             this.socket = new DatagramSocket(portPrm);
             this.socket.setSoTimeout(1000);
-            AppLog.add("Сокет пересоздан: порт=" + portPrm + ", канал=" + kanalPrd);
+            AppLog.add("PmrSocket: Сокет пересоздан, порт=" + portPrm + ", kanal=" + kanalPrd);
         } catch (Exception e) {
             Log.e(TAG, "Error recreate socket: " + e.getMessage());
-            AppLog.add("Ошибка пересоздания сокета: " + e.getMessage());
+            AppLog.add("PmrSocket: ОШИБКА пересоздания сокета — " + e.getMessage());
             return;
         }
         isRunning = true;
@@ -153,6 +160,7 @@ public class PmrSocket {
     public void start() {
         if (isRunning) return;
         isRunning = true;
+        AppLog.add("PmrSocket: start() — запуск потоков");
 
         receiveThread = new Thread(() -> {
             byte[] buffer = new byte[2048];
@@ -182,6 +190,12 @@ public class PmrSocket {
                     ping[3] = (byte) ((kanalSecret >> 8) & 0xFF);
                     socket.send(new DatagramPacket(ping, 4, serverAddr, portPrd + kanalPrd));
 
+                    pingCount++;
+                    if (pingCount <= 5 || pingCount % 10 == 0) {
+                        AppLog.add("PmrSocket: ping #" + pingCount + " → порт " + (portPrd + kanalPrd)
+                                + ", secret=" + kanalSecret);
+                    }
+
                     Thread.sleep(1000);
                 } catch (Exception e) {
                     Log.e(TAG, "Ping error: " + e.getMessage());
@@ -200,7 +214,7 @@ public class PmrSocket {
         if (kanal != kanalPrd && kanalPrd != 0) return;
 
         if (command != 22) {
-            AppLog.add("← Входящий: cmd=" + command + ", kanal=" + kanal + ", client=" + client + ", size=" + data.length);
+            AppLog.add("PmrSocket: ← cmd=" + command + ", kanal=" + kanal + ", client=" + client + ", size=" + data.length);
         }
 
         if (command == 22 && data.length == 324) {
@@ -208,6 +222,7 @@ public class PmrSocket {
             if (voiceListener != null) voiceListener.onVoiceReceived(client);
         } else if (command == 110) {
             clientNumber = client;
+            AppLog.add("PmrSocket: cmd=110 — количество в канале=" + client + " → requestChanList");
             requestChanList();
         } else if (command == 234) {
             parseChanList(data);
@@ -218,6 +233,8 @@ public class PmrSocket {
         List<ChanEntry> entries = new ArrayList<>();
         int payload = data.length - 4;
         int count = payload / 13;
+        AppLog.add("PmrSocket: parseChanList — size=" + data.length + ", записей=" + count);
+
         for (int i = 0; i < count; i++) {
             int offset = 4 + (i * 13);
             if (offset + 12 >= data.length) break;
@@ -229,14 +246,20 @@ public class PmrSocket {
             String ip = ip0 + "." + ip1 + "." + ip2 + "." + ip3;
             boolean ban = (data[offset + 12] & 0xFF) != 0;
             entries.add(new ChanEntry(id, ip, ban));
+            AppLog.add("PmrSocket:   запись #" + i + " — id=" + id + ", ip=" + ip + ", ban=" + ban);
         }
         if (chanListListener != null) {
             chanListListener.onChanListReceived(entries);
+        } else {
+            AppLog.add("PmrSocket: chanListListener == null, список не передан в Activity");
         }
     }
 
     public void requestChanList() {
-        if (socket == null || socket.isClosed()) return;
+        if (socket == null || socket.isClosed()) {
+            AppLog.add("PmrSocket: requestChanList — сокет null/closed, пропуск");
+            return;
+        }
         try {
             byte[] cmd = new byte[4];
             cmd[0] = (byte) 234;
@@ -245,9 +268,9 @@ public class PmrSocket {
             cmd[3] = 0;
             int listPort = portPrd + 13;
             socket.send(new DatagramPacket(cmd, 4, serverAddr, listPort));
-            AppLog.add("→ Отправлено: cmd=234 (запрос списка) на порт " + listPort + ", kanal=13");
+            AppLog.add("PmrSocket: → cmd=234 отправлен, порт=" + listPort + ", kanal=13");
         } catch (IOException e) {
-            AppLog.add("Ошибка отправки списка: " + e.getMessage());
+            AppLog.add("PmrSocket: ОШИБКА cmd=234 — " + e.getMessage());
         }
     }
 
@@ -259,21 +282,21 @@ public class PmrSocket {
         ban[3] = (byte) ((targetId >> 8) & 0xFF);
         try {
             socket.send(new DatagramPacket(ban, 4, serverAddr, portPrd + kanalPrd));
-            AppLog.add("→ Отправлено: БАН ID=" + targetId);
+            AppLog.add("PmrSocket: → cmd=222 (БАН) id=" + targetId + ", порт=" + (portPrd + kanalPrd));
         } catch (IOException e) {
-            AppLog.add("Ошибка бана: " + e.getMessage());
+            AppLog.add("PmrSocket: ОШИБКА cmd=222 — " + e.getMessage());
         }
     }
 
     public void sendUnban(int targetId) {
         sendBan(targetId);
-        AppLog.add("→ Отправлено: РАЗБАН (повтор 222) ID=" + targetId);
+        AppLog.add("PmrSocket: → РАЗБАН id=" + targetId + " (повтор 222)");
     }
 
     public void stop() {
         isRunning = false;
         if (socket != null && !socket.isClosed()) socket.close();
-        AppLog.add("Работа сокета остановлена");
+        AppLog.add("PmrSocket: stop() — сокет закрыт");
     }
 
     public void sendVoice(byte[] mainPacket, byte[] reservePacket) {
@@ -283,7 +306,7 @@ public class PmrSocket {
                 socket.send(new DatagramPacket(mainPacket, mainPacket.length, serverAddr, portPrd + kanalPrd));
             }
         } catch (IOException e) {
-            AppLog.add("Ошибка отправки голоса: " + e.getMessage());
+            AppLog.add("PmrSocket: ОШИБКА sendVoice — " + e.getMessage());
         }
     }
 }

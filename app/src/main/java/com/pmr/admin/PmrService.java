@@ -33,8 +33,10 @@ public class PmrService extends Service {
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
             if ("PMR_START_RECORDING".equals(action)) {
+                AppLog.add("PmrService: PMR_START_RECORDING → startRecording");
                 if (audioEngine != null) audioEngine.startRecording();
             } else if ("PMR_STOP_RECORDING".equals(action)) {
+                AppLog.add("PmrService: PMR_STOP_RECORDING → stopRecording");
                 if (audioEngine != null) audioEngine.stopRecording();
             }
         }
@@ -43,7 +45,7 @@ public class PmrService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-        AppLog.add("PmrService.onCreate() — старт V9.37");
+        AppLog.add("PmrService: onCreate — старт V9.39");
 
         IntentFilter filter = new IntentFilter();
         filter.addAction("PMR_START_RECORDING");
@@ -58,17 +60,18 @@ public class PmrService extends Service {
 
         createChannel();
         startForeground(NOTIF_ID, buildNotification());
-        AppLog.add("PmrService: служба запущена, аудио инициализировано");
+        AppLog.add("PmrService: служба запущена, audioEngine и pmrSocket созданы");
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        AppLog.add("PmrService: onStartCommand START_STICKY");
         return START_STICKY;
     }
 
     @Override
     public void onDestroy() {
-        AppLog.add("PmrService.onDestroy()");
+        AppLog.add("PmrService: onDestroy");
         try { unregisterReceiver(controlReceiver); } catch (Exception ignored) {}
         if (audioEngine != null) {
             try { audioEngine.stopRecording(); } catch (Exception ignored) {}

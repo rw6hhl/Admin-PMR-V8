@@ -74,7 +74,9 @@ public class NameBook {
         Map<Integer, String> map = new LinkedHashMap<>();
         BufferedReader br = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8));
         String line;
+        int lineNo = 0;
         while ((line = br.readLine()) != null) {
+            lineNo++;
             line = line.trim();
             if (line.isEmpty() || line.startsWith("#")) continue;
             String idStr;
@@ -96,11 +98,14 @@ public class NameBook {
             try {
                 int id = Integer.parseInt(idStr);
                 map.put(id, name);
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+                AppLog.add("NameBook: строка " + lineNo + " — не число: " + idStr);
+            }
         }
         br.close();
         if (map.isEmpty()) return 0;
         save(ctx, map);
+        AppLog.add("NameBook: импорт завершён, записей=" + map.size());
         return map.size();
     }
 }

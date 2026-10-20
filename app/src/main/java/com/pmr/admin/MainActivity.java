@@ -37,6 +37,7 @@ public class MainActivity extends AppCompatActivity {
         public void onReceive(Context context, Intent intent) {
             int clientId = intent.getIntExtra("clientId", -1);
             if (clientId != -1) {
+                AppLog.add("MainActivity: PMR_VOICE_RECEIVED clientId=" + clientId);
                 tvSpeakingId.setText(String.valueOf(clientId));
             }
         }
@@ -46,13 +47,16 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        
+
+        AppLog.init(getApplicationContext());
+
         prefs = getSharedPreferences("pmr_prefs", MODE_PRIVATE);
-        
+        AppLog.add("MainActivity: onCreate");
+
         String savedVersion = prefs.getString("app_version", "0");
-        if (!savedVersion.equals("9.38")) {
+        if (!savedVersion.equals("9.39")) {
             prefs.edit()
-                .putString("app_version", "9.38")
+                .putString("app_version", "9.39")
                 .putString("MyMailIndex", "51953")
                 .putString("Priznak_pmr", "26000")
                 .putInt("PORT_prm", 5253)
@@ -62,7 +66,7 @@ public class MainActivity extends AppCompatActivity {
                 .putBoolean("simplex", true)
                 .putBoolean("is_admin_mode", false)
                 .apply();
-            AppLog.add("Настройки сброшены (V9.38): Priznak=26000, Mail=51953, Ch=4, PORT_prm=5253, PORT_prd=16000");
+            AppLog.add("MainActivity: Настройки сброшены (V9.39): Priznak=26000, Mail=51953, Ch=4, PORT_prm=5253, PORT_prd=16000");
         }
 
         requestMicPermission();
@@ -76,12 +80,14 @@ public class MainActivity extends AppCompatActivity {
 
         currentChannel = prefs.getInt("current_channel", 4);
         isAdminMode = prefs.getBoolean("is_admin_mode", false);
+        AppLog.add("MainActivity: currentChannel=" + currentChannel + ", isAdminMode=" + isAdminMode);
 
         initViews();
         setupListeners();
         updateUI();
-        
+
         new Handler().postDelayed(() -> {
+            AppLog.add("MainActivity: запуск PmrService");
             Intent serviceIntent = new Intent(this, PmrService.class);
             startService(serviceIntent);
         }, 500);
@@ -89,7 +95,10 @@ public class MainActivity extends AppCompatActivity {
 
     private void requestMicPermission() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            AppLog.add("MainActivity: запрос разрешения на микрофон");
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, REQ_MIC);
+        } else {
+            AppLog.add("MainActivity: разрешение на микрофон уже есть");
         }
     }
 
@@ -98,9 +107,9 @@ public class MainActivity extends AppCompatActivity {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == REQ_MIC) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                AppLog.add("Разрешение на микрофон получено");
+                AppLog.add("MainActivity: Разрешение на микрофон получено");
             } else {
-                AppLog.add("ОШИБКА: Разрешение отклонено!");
+                AppLog.add("MainActivity: ОШИБКА — разрешение на микрофон отклонено!");
             }
         }
     }
@@ -123,13 +132,19 @@ public class MainActivity extends AppCompatActivity {
         btnSave5 = findViewById(R.id.buttonsave5);
         btnPTT = findViewById(R.id.btnPTT);
         btnSecretMode = findViewById(R.id.btnSecretMode);
+        AppLog.add("MainActivity: initViews — найдены кнопки и TextView");
     }
 
     private void setupListeners() {
-        btnMenu.setOnClickListener(v -> startActivity(new Intent(this, SettingsActivity.class)));
-        
+        btnMenu.setOnClickListener(v -> {
+            AppLog.add("MainActivity: нажата MENU → SettingsActivity");
+            startActivity(new Intent(this, SettingsActivity.class));
+        });
+
         btnCallOrList.setOnClickListener(v -> {
+            AppLog.add("MainActivity: нажата CALL/LIST, isAdminMode=" + isAdminMode);
             if (isAdminMode) {
+                AppLog.add("MainActivity: открываю ChanListActivity");
                 startActivity(new Intent(this, ChanListActivity.class));
             } else {
                 Toast.makeText(this, "Вызов (CALL)", Toast.LENGTH_SHORT).show();
@@ -139,23 +154,28 @@ public class MainActivity extends AppCompatActivity {
         btnSecretMode.setOnClickListener(v -> {
             isAdminMode = !isAdminMode;
             prefs.edit().putBoolean("is_admin_mode", isAdminMode).apply();
+            AppLog.add("MainActivity: переключение режима → isAdminMode=" + isAdminMode);
             Toast.makeText(this, isAdminMode ? "РЕЖИМ АДМИНА" : "РЕЖИМ КЛИЕНТА", Toast.LENGTH_SHORT).show();
             updateUI();
         });
 
         btnUp.setOnClickListener(v -> {
             if (currentChannel < 8) {
+                int old = currentChannel;
                 currentChannel++;
                 updateUI();
                 prefs.edit().putInt("current_channel", currentChannel).apply();
+                AppLog.add("MainActivity: UP, канал " + old + " → " + currentChannel);
             }
         });
 
         btnDown.setOnClickListener(v -> {
             if (currentChannel > 0) {
+                int old = currentChannel;
                 currentChannel--;
                 updateUI();
                 prefs.edit().putInt("current_channel", currentChannel).apply();
+                AppLog.add("MainActivity: DOWN, канал " + old + " → " + currentChannel);
             }
         });
 
@@ -174,11 +194,13 @@ public class MainActivity extends AppCompatActivity {
         btnPTT.setOnTouchListener((v, event) -> {
             switch (event.getAction()) {
                 case MotionEvent.ACTION_DOWN:
+                    AppLog.add("MainActivity: PTT ACTION_DOWN");
                     imgRed.setVisibility(View.VISIBLE);
                     sendBroadcast(new Intent("PMR_START_RECORDING"));
                     return true;
                 case MotionEvent.ACTION_UP:
                 case MotionEvent.ACTION_CANCEL:
+                    AppLog.add("MainActivity: PTT ACTION_UP/CANCEL");
                     imgRed.setVisibility(View.INVISIBLE);
                     sendBroadcast(new Intent("PMR_STOP_RECORDING"));
                     return true;
@@ -196,7 +218,7 @@ public class MainActivity extends AppCompatActivity {
         editor.putInt("preset_port_prm_" + presetNum, prefs.getInt("PORT_prm", 5253));
         editor.putInt("preset_port_prd_" + presetNum, prefs.getInt("PORT_prd", 16000));
         editor.apply();
-        
+
         String info = "Сохранено в ячейку " + presetNum + ":\n" +
                 "Канал: " + currentChannel + "\n" +
                 "Индекс: " + prefs.getString("MyMailIndex", "") + "\n" +
@@ -204,6 +226,11 @@ public class MainActivity extends AppCompatActivity {
                 "PORT_prm: " + prefs.getInt("PORT_prm", 5253) + "\n" +
                 "PORT_prd: " + prefs.getInt("PORT_prd", 16000) + "\n" +
                 "IP: " + prefs.getString("ip_server", "");
+        AppLog.add("MainActivity: savePreset(" + presetNum + ") — channel=" + currentChannel
+                + ", index=" + prefs.getString("MyMailIndex", "")
+                + ", priznak=" + prefs.getString("Priznak_pmr", "")
+                + ", PORT_prm=" + prefs.getInt("PORT_prm", 5253)
+                + ", PORT_prd=" + prefs.getInt("PORT_prd", 16000));
         Toast.makeText(this, info, Toast.LENGTH_LONG).show();
     }
 
@@ -214,9 +241,9 @@ public class MainActivity extends AppCompatActivity {
         String ip = prefs.getString("preset_ip_" + presetNum, prefs.getString("ip_server", "185.221.154.39"));
         int prm = prefs.getInt("preset_port_prm_" + presetNum, prefs.getInt("PORT_prm", 5253));
         int prd = prefs.getInt("preset_port_prd_" + presetNum, prefs.getInt("PORT_prd", 16000));
-        
+
         currentChannel = channel;
-        
+
         prefs.edit()
             .putInt("current_channel", channel)
             .putString("MyMailIndex", index)
@@ -225,13 +252,20 @@ public class MainActivity extends AppCompatActivity {
             .putInt("PORT_prm", prm)
             .putInt("PORT_prd", prd)
             .apply();
-        
+
+        AppLog.add("MainActivity: loadPreset(" + presetNum + ") — channel=" + channel
+                + ", index=" + index + ", priznak=" + priznak
+                + ", PORT_prm=" + prm + ", PORT_prd=" + prd + ", ip=" + ip);
+
         if (PmrService.pmrSocket != null) {
+            AppLog.add("MainActivity: loadPreset → recreateSocket");
             PmrService.pmrSocket.recreateSocket(this);
+        } else {
+            AppLog.add("MainActivity: loadPreset — pmrSocket == null (сервис не запущен), recreateSocket пропущен");
         }
-        
+
         updateUI();
-        
+
         String info = "Загружено из ячейки " + presetNum + ":\n" +
                 "Канал: " + channel + "\n" +
                 "Индекс: " + index + "\n" +
@@ -246,7 +280,7 @@ public class MainActivity extends AppCompatActivity {
         tvChannel.setText(currentChannel == 0 ? "R" : String.valueOf(currentChannel));
         tvIndex.setText(prefs.getString("MyMailIndex", "51953"));
         tvVersion.setText("v" + BuildConfig.VERSION_NAME);
-        
+
         if (isAdminMode) {
             tvChannel.setTextColor(getResources().getColor(R.color.active));
             btnCallOrList.setText("LIST");
@@ -261,6 +295,7 @@ public class MainActivity extends AppCompatActivity {
         super.onResume();
         isAdminMode = prefs.getBoolean("is_admin_mode", false);
         currentChannel = prefs.getInt("current_channel", 4);
+        AppLog.add("MainActivity: onResume, isAdminMode=" + isAdminMode + ", currentChannel=" + currentChannel);
         updateUI();
         registerReceiver(voiceReceiver, new IntentFilter("PMR_VOICE_RECEIVED"));
     }
@@ -268,12 +303,14 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
+        AppLog.add("MainActivity: onPause");
         unregisterReceiver(voiceReceiver);
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        AppLog.add("MainActivity: onDestroy");
         if (wakeLock != null && wakeLock.isHeld()) wakeLock.release();
         stopService(new Intent(this, PmrService.class));
     }

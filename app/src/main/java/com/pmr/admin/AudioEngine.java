@@ -39,7 +39,6 @@ public class AudioEngine {
     public boolean isPlaying() { return this.isPlaying; }
     public boolean isDuplex() { return true; }
 
-    // МЕТОД ДЛЯ ПРИЕМА (вызывается из PmrSocket)
     public void pushToRingBuffer(byte[] packet) {
         if (packet != null && packet.length >= 324 && isPlaying) {
             int client = (packet[2] & 0xFF) | ((packet[3] & 0xFF) << 8);
@@ -66,7 +65,7 @@ public class AudioEngine {
             }
         }
         this.isPlaying = true;
-        AppLog.add("AudioEngine: startPlaying, volume=1.7, slots=" + this.tracks.length);
+        AppLog.add("AudioEngine: startPlaying, 40 слотов (20×16кГц, 20×8кГц), volume=" + VOLUME_BOOST);
     }
 
     public void stopPlaying() {
@@ -163,7 +162,10 @@ public class AudioEngine {
     public void startRecording() {
         final int sampleRate;
         int bufSize;
-        if (this.isRecording) return;
+        if (this.isRecording) {
+            AppLog.add("AudioEngine: startRecording — уже идёт запись, пропуск");
+            return;
+        }
         if (this.rej == 22 || this.rej == 21 || this.rej == 19) {
             sampleRate = 16000;
             bufSize = 640;
@@ -184,9 +186,9 @@ public class AudioEngine {
             }, "pmr-rec");
             this.recorderThread = thread;
             thread.start();
-            AppLog.add("AudioEngine: запись стартовала, rate=" + sampleRate + ", rej=" + this.rej);
+            AppLog.add("AudioEngine: startRecording — rate=" + sampleRate + ", rej=" + rej + ", bufSize=" + bufSize);
         } catch (Exception e) {
-            AppLog.add("AudioEngine: ошибка записи — " + e);
+            AppLog.add("AudioEngine: ОШИБКА startRecording — " + e);
         }
     }
 
@@ -198,7 +200,7 @@ public class AudioEngine {
             this.recorder = null;
         }
         this.recorderThread = null;
-        AppLog.add("AudioEngine: запись остановлена");
+        AppLog.add("AudioEngine: stopRecording");
     }
 
     private void lambda$startRecording$0(int sampleRate) {
@@ -207,6 +209,7 @@ public class AudioEngine {
         byte[] payload;
         byte[] pcm16 = new byte[640];
         byte[] g711buf = new byte[BUF_ELEMENTS];
+        int packetCount = 0;
         while (this.isRecording) {
             try {
                 int read = this.recorder.read(pcm16, 0, pcm16.length);
@@ -259,8 +262,14 @@ public class AudioEngine {
                     mainPacket[3] = (byte) ((PmrSocket.Priznak_pmr >> 8) & 255);
                     System.arraycopy(payload, 0, mainPacket, 4, payloadLen);
                     if (pmrSocket != null) pmrSocket.sendVoice(mainPacket, packet);
+
+                    packetCount++;
+                    if (packetCount <= 3 || packetCount % 50 == 0) {
+                        AppLog.add("AudioEngine: пакет #" + packetCount + ", cmd=" + cmd + ", payloadLen=" + payloadLen + ", secret=" + secret);
+                    }
                 }
             } catch (Exception e) {
+                AppLog.add("AudioEngine: ошибка в цикле записи — " + e);
                 return;
             }
         }
