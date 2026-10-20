@@ -71,7 +71,7 @@ public class SettingsActivity extends AppCompatActivity {
 
         editMailIndex.setText(prefs.getString("MyMailIndex", "51953"));
         editPriznak.setText(prefs.getString("Priznak_pmr", "26000"));
-        editPortPrm.setText(String.valueOf(prefs.getInt("PORT_prm", 5254)));
+        editPortPrm.setText(String.valueOf(prefs.getInt("PORT_prm", 5253)));
         editPortPrd.setText(String.valueOf(prefs.getInt("PORT_prd", 16000)));
         editIp.setText(prefs.getString("ip_server", "185.221.154.39"));
 
@@ -121,6 +121,11 @@ public class SettingsActivity extends AppCompatActivity {
         editor.putInt("PORT_prd", Integer.parseInt(editPortPrd.getText().toString()));
         editor.putString("ip_server", editIp.getText().toString());
         editor.apply();
+        // Применяем новые параметры в процессе работы без перезапуска приложения
+        if (PmrService.pmrSocket != null) {
+            PmrService.pmrSocket.recreateSocket(this);
+            AppLog.add("Настройки сервера применены в работе (recreateSocket)");
+        }
         finish();
     }
 }

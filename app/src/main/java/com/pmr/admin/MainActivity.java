@@ -50,9 +50,9 @@ public class MainActivity extends AppCompatActivity {
         prefs = getSharedPreferences("pmr_prefs", MODE_PRIVATE);
         
         String savedVersion = prefs.getString("app_version", "0");
-        if (!savedVersion.equals("9.37")) {
+        if (!savedVersion.equals("9.38")) {
             prefs.edit()
-                .putString("app_version", "9.37")
+                .putString("app_version", "9.38")
                 .putString("MyMailIndex", "51953")
                 .putString("Priznak_pmr", "26000")
                 .putInt("PORT_prm", 5253)
@@ -62,7 +62,7 @@ public class MainActivity extends AppCompatActivity {
                 .putBoolean("simplex", true)
                 .putBoolean("is_admin_mode", false)
                 .apply();
-            AppLog.add("Настройки сброшены (V9.37): Priznak=26000, Mail=51953, Ch=4, PORT_prm=5253, PORT_prd=16000");
+            AppLog.add("Настройки сброшены (V9.38): Priznak=26000, Mail=51953, Ch=4, PORT_prm=5253, PORT_prd=16000");
         }
 
         requestMicPermission();
@@ -190,15 +190,19 @@ public class MainActivity extends AppCompatActivity {
     private void savePreset(int presetNum) {
         SharedPreferences.Editor editor = prefs.edit();
         editor.putInt("preset_channel_" + presetNum, currentChannel);
-        editor.putString("preset_index_" + presetNum, prefs.getString("MyMailIndex", ""));
-        editor.putString("preset_priznak_" + presetNum, prefs.getString("Priznak_pmr", ""));
-        editor.putString("preset_ip_" + presetNum, prefs.getString("ip_server", ""));
+        editor.putString("preset_index_" + presetNum, prefs.getString("MyMailIndex", "51953"));
+        editor.putString("preset_priznak_" + presetNum, prefs.getString("Priznak_pmr", "26000"));
+        editor.putString("preset_ip_" + presetNum, prefs.getString("ip_server", "185.221.154.39"));
+        editor.putInt("preset_port_prm_" + presetNum, prefs.getInt("PORT_prm", 5253));
+        editor.putInt("preset_port_prd_" + presetNum, prefs.getInt("PORT_prd", 16000));
         editor.apply();
         
         String info = "Сохранено в ячейку " + presetNum + ":\n" +
                 "Канал: " + currentChannel + "\n" +
                 "Индекс: " + prefs.getString("MyMailIndex", "") + "\n" +
                 "Признак: " + prefs.getString("Priznak_pmr", "") + "\n" +
+                "PORT_prm: " + prefs.getInt("PORT_prm", 5253) + "\n" +
+                "PORT_prd: " + prefs.getInt("PORT_prd", 16000) + "\n" +
                 "IP: " + prefs.getString("ip_server", "");
         Toast.makeText(this, info, Toast.LENGTH_LONG).show();
     }
@@ -208,6 +212,8 @@ public class MainActivity extends AppCompatActivity {
         String index = prefs.getString("preset_index_" + presetNum, prefs.getString("MyMailIndex", "51953"));
         String priznak = prefs.getString("preset_priznak_" + presetNum, prefs.getString("Priznak_pmr", "26000"));
         String ip = prefs.getString("preset_ip_" + presetNum, prefs.getString("ip_server", "185.221.154.39"));
+        int prm = prefs.getInt("preset_port_prm_" + presetNum, prefs.getInt("PORT_prm", 5253));
+        int prd = prefs.getInt("preset_port_prd_" + presetNum, prefs.getInt("PORT_prd", 16000));
         
         currentChannel = channel;
         
@@ -216,6 +222,8 @@ public class MainActivity extends AppCompatActivity {
             .putString("MyMailIndex", index)
             .putString("Priznak_pmr", priznak)
             .putString("ip_server", ip)
+            .putInt("PORT_prm", prm)
+            .putInt("PORT_prd", prd)
             .apply();
         
         if (PmrService.pmrSocket != null) {
@@ -228,6 +236,8 @@ public class MainActivity extends AppCompatActivity {
                 "Канал: " + channel + "\n" +
                 "Индекс: " + index + "\n" +
                 "Признак: " + priznak + "\n" +
+                "PORT_prm: " + prm + "\n" +
+                "PORT_prd: " + prd + "\n" +
                 "IP: " + ip;
         Toast.makeText(this, info, Toast.LENGTH_LONG).show();
     }
