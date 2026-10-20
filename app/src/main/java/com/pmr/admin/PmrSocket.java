@@ -22,7 +22,7 @@ public class PmrSocket {
     private SharedPreferences prefs;
     public static int Priznak_pmr = 26000;
     private int myMailIndex = 51953;
-    private int portPrm = 5254;
+    private int portPrm = 5253;
     private int portPrd = 16000;
     private int kanalPrd = 13;
     private int kanalSecret = 0;
@@ -67,18 +67,22 @@ public class PmrSocket {
     }
 
     private void loadSettings() {
-        Priznak_pmr = 26000;
-        myMailIndex = 51953;
-        portPrm = 5254;
-        portPrd = 16000;
+        try {
+            myMailIndex = Integer.parseInt(prefs.getString("MyMailIndex", "51953"));
+        } catch (Exception ignored) {}
+        try {
+            Priznak_pmr = Integer.parseInt(prefs.getString("Priznak_pmr", "26000"));
+        } catch (Exception ignored) {}
+        portPrm = prefs.getInt("PORT_prm", 5253);
+        portPrd = prefs.getInt("PORT_prd", 16000);
 
         kanalSecret = (myMailIndex & 0xFFFFFFF0) >> 4;
 
-        int myPChannel = prefs.getInt("current_channel", 1);
+        int myPChannel = prefs.getInt("current_channel", 4);
         if (myPChannel == 0) kanalPrd = 0;
         else kanalPrd = ((myMailIndex & 0xF) * 8) + myPChannel;
 
-        AppLog.add("Настройки: ID=" + Priznak_pmr + ", Mail=" + myMailIndex + ", Канал=" + kanalPrd + ", Секрет=" + kanalSecret + ", Порт=" + portPrd);
+        AppLog.add("Настройки: ID=" + Priznak_pmr + ", Mail=" + myMailIndex + ", Канал=" + kanalPrd + ", Секрет=" + kanalSecret + ", Порт=" + portPrd + ", PORT_prm=" + portPrm);
     }
 
     public void reloadFromPrefs(Context context) {
@@ -90,16 +94,16 @@ public class PmrSocket {
             Priznak_pmr = Integer.parseInt(sp.getString("Priznak_pmr", "26000"));
         } catch (Exception ignored) {}
         portPrd = sp.getInt("PORT_prd", 16000);
-        portPrm = sp.getInt("PORT_prm", 5254);
+        portPrm = sp.getInt("PORT_prm", 5253);
         try {
             String ip = sp.getString("ip_server", "185.221.154.39");
             serverAddr = InetAddress.getByName(ip);
         } catch (Exception ignored) {}
-        int myPChannel = sp.getInt("current_channel", 1);
+        int myPChannel = sp.getInt("current_channel", 4);
         if (myPChannel == 0) kanalPrd = 0;
         else kanalPrd = ((myMailIndex & 0xF) * 8) + myPChannel;
         kanalSecret = (myMailIndex & 0xFFFFFFF0) >> 4;
-        AppLog.add("PmrSocket.reload: mail=" + myMailIndex + ", ch=" + myPChannel + ", priznak=" + Priznak_pmr + ", kanal=" + kanalPrd + ", secret=" + kanalSecret);
+        AppLog.add("PmrSocket.reload: mail=" + myMailIndex + ", ch=" + myPChannel + ", priznak=" + Priznak_pmr + ", kanal=" + kanalPrd + ", secret=" + kanalSecret + ", portPrm=" + portPrm);
     }
 
     public void recreateSocket(Context context) {
@@ -204,7 +208,6 @@ public class PmrSocket {
             if (voiceListener != null) voiceListener.onVoiceReceived(client);
         } else if (command == 110) {
             clientNumber = client;
-            // При изменении количества — запрос списка (как в admin.c, case 'n')
             requestChanList();
         } else if (command == 234) {
             parseChanList(data);
@@ -218,7 +221,6 @@ public class PmrSocket {
         for (int i = 0; i < count; i++) {
             int offset = 4 + (i * 13);
             if (offset + 12 >= data.length) break;
-            // Структура CLI из admin.c: i(2), cod(2), Id(2), port(2), ip(4), ban(1) = 13 байт
             int id = (data[offset + 4] & 0xFF) | ((data[offset + 5] & 0xFF) << 8);
             int ip0 = data[offset + 8] & 0xFF;
             int ip1 = data[offset + 9] & 0xFF;
@@ -238,10 +240,9 @@ public class PmrSocket {
         try {
             byte[] cmd = new byte[4];
             cmd[0] = (byte) 234;
-            cmd[1] = 13;   // как в admin.c: kanal = 13
+            cmd[1] = 13;
             cmd[2] = 0;
             cmd[3] = 0;
-            // как в admin.c: PORT_prd + kanal_PRD, где kanal_PRD = 13 для списка
             int listPort = portPrd + 13;
             socket.send(new DatagramPacket(cmd, 4, serverAddr, listPort));
             AppLog.add("→ Отправлено: cmd=234 (запрос списка) на порт " + listPort + ", kanal=13");

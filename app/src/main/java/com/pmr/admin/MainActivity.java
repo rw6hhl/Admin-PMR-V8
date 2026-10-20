@@ -30,7 +30,7 @@ public class MainActivity extends AppCompatActivity {
     private Button btnMenu, btnUp, btnDown, btnSave1, btnSave2, btnSave3, btnSave4, btnSave5, btnCallOrList, btnPTT, btnSecretMode;
     private boolean isAdminMode = false;
     private PowerManager.WakeLock wakeLock;
-    private int currentChannel = 1;
+    private int currentChannel = 4;
 
     private BroadcastReceiver voiceReceiver = new BroadcastReceiver() {
         @Override
@@ -50,19 +50,19 @@ public class MainActivity extends AppCompatActivity {
         prefs = getSharedPreferences("pmr_prefs", MODE_PRIVATE);
         
         String savedVersion = prefs.getString("app_version", "0");
-        if (!savedVersion.equals("9.35")) {
+        if (!savedVersion.equals("9.37")) {
             prefs.edit()
-                .putString("app_version", "9.35")
+                .putString("app_version", "9.37")
                 .putString("MyMailIndex", "51953")
                 .putString("Priznak_pmr", "26000")
-                .putInt("PORT_prm", 5254)
+                .putInt("PORT_prm", 5253)
                 .putInt("PORT_prd", 16000)
                 .putString("ip_server", "185.221.154.39")
-                .putInt("current_channel", 1)
+                .putInt("current_channel", 4)
                 .putBoolean("simplex", true)
                 .putBoolean("is_admin_mode", false)
                 .apply();
-            AppLog.add("Настройки сброшены (V9.35)");
+            AppLog.add("Настройки сброшены (V9.37): Priznak=26000, Mail=51953, Ch=4, PORT_prm=5253, PORT_prd=16000");
         }
 
         requestMicPermission();
@@ -74,7 +74,7 @@ public class MainActivity extends AppCompatActivity {
             wakeLock.acquire();
         }
 
-        currentChannel = prefs.getInt("current_channel", 1);
+        currentChannel = prefs.getInt("current_channel", 4);
         isAdminMode = prefs.getBoolean("is_admin_mode", false);
 
         initViews();
@@ -99,9 +99,6 @@ public class MainActivity extends AppCompatActivity {
         if (requestCode == REQ_MIC) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 AppLog.add("Разрешение на микрофон получено");
-                // Сервис уже запущен в onCreate. Перезапуск не нужен.
-                // AudioEngine.startRecording() создаёт AudioRecord в момент PTT,
-                // когда разрешение уже выдано. Stop/start здесь давал гонку EADDRINUSE.
             } else {
                 AppLog.add("ОШИБКА: Разрешение отклонено!");
             }
@@ -253,7 +250,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         isAdminMode = prefs.getBoolean("is_admin_mode", false);
-        currentChannel = prefs.getInt("current_channel", 1);
+        currentChannel = prefs.getInt("current_channel", 4);
         updateUI();
         registerReceiver(voiceReceiver, new IntentFilter("PMR_VOICE_RECEIVED"));
     }
