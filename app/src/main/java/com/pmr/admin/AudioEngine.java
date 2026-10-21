@@ -18,6 +18,8 @@ public class AudioEngine {
     private static final int SAMPLE_RATE_16K = 16000;
     private static final int SAMPLE_RATE_8K = 8000;
     private static final int SLOTS_PER_FORMAT = 20;
+    private static final float DEFAULT_VOLUME = 1.7f;
+    
     private final Context appCtx;
     private final PmrSocket pmrSocket;
     private final G711Ua g711 = new G711Ua();
@@ -28,6 +30,7 @@ public class AudioEngine {
     private volatile boolean isPlaying = false;
     private volatile int rej = 22;
 
+    // Настройки усиления
     private boolean onUsilMic = false;
     private float micGain = 2.0f;
     private boolean onUsilDin = false;
@@ -50,7 +53,7 @@ public class AudioEngine {
     public void applyGain() {
         loadGainSettings();
         if (isPlaying) {
-            float vol = onUsilDin ? dinGain * 1.7f : 1.7f;
+            float vol = onUsilDin ? dinGain : DEFAULT_VOLUME;
             for (AudioTrack t : tracks) {
                 if (t != null) {
                     try { t.setVolume(vol); } catch (Exception ignored) {}
@@ -79,11 +82,11 @@ public class AudioEngine {
     public void startPlaying() {
         if (this.isPlaying) return;
         loadGainSettings();
-        float vol = onUsilDin ? dinGain * 1.7f : 1.7f;
+        float vol = onUsilDin ? dinGain : DEFAULT_VOLUME;
 
         for (int i = 0; i < 20; i++) {
             if (this.tracks[i] == null) {
-                this.tracks[i] = new AudioTrack(3, 16000, 4, 2, AudioTrack.getMinBufferSize(16000, 4, 2), 1);
+                this.tracks[i] = new AudioTrack(3, SAMPLE_RATE_16K, 4, 2, AudioTrack.getMinBufferSize(SAMPLE_RATE_16K, 4, 2), 1);
                 try { this.tracks[i].setVolume(vol); } catch (Exception ignored) {}
             }
         }
@@ -109,7 +112,9 @@ public class AudioEngine {
                     this.tracks[i] = null;
                 }
                 i++;
-            } else { return; }
+            } else {
+                return;
+            }
         }
     }
 
@@ -226,7 +231,10 @@ public class AudioEngine {
         this.isRecording = false;
         AudioRecord audioRecord = this.recorder;
         if (audioRecord != null) {
-            try { audioRecord.stop(); this.recorder.release(); } catch (Exception ignored) {}
+            try {
+                audioRecord.stop();
+                this.recorder.release();
+            } catch (Exception ignored) {}
             this.recorder = null;
         }
         this.recorderThread = null;
@@ -240,11 +248,12 @@ public class AudioEngine {
         byte[] pcm16 = new byte[640];
         byte[] g711buf = new byte[BUF_ELEMENTS];
         int packetCount = 0;
+        
         while (this.isRecording) {
             try {
                 int read = this.recorder.read(pcm16, 0, pcm16.length);
                 if (read > 0) {
-                    // Применение усиления микрофона (если включено)
+                    // Применение усиления микрофона
                     if (onUsilMic) {
                         for (int i = 0; i < read; i += 2) {
                             int sample = (short) ((pcm16[i] & 0xFF) | (pcm16[i+1] << 8));
@@ -287,3 +296,55 @@ public class AudioEngine {
                     } else {
                         continue;
                     }
+                    
+                    PmrSocket pmrSocket = this.pmrSocket;
+                    int secret = pmrSocket != null ? pmrSocket.getKanalSecretInstance() : 0;
+                    byte[] packet = new byte[payloadLen + 6];
+                    packet[0] = (byte) cmd;
+                    packet[1] = 0;
+                    packet[2] = (byte) (PmrSocket.Priznak_pmr & 255);
+                    packet[3] = (byte) ((PmrSocket.Priznak_pmr >> 8) & 255);
+                    packet[4] = (byte) (secret & 255);
+                    packet[5] = (byte) ((secret >> 8) & 255);
+                    System.arraycopy(payload, 0, packet, 6, payloadLen);
+                    
+                    byte[] mainPacket = new byte[payloadLen + 4];
+                    mainPacket[0] = (byte) cmd;
+                    mainPacket[1] = 0;
+                    mainPacket[2] = (byte) (PmrSocket.Priznak_pmr & 255);
+                    mainPacket[3] = (byte) ((PmrSocket.Priznak_pmr >> 8) & 255);
+                    System.arraycopy(payload, 0, mainPacket, 4, payloadLen);
+                    
+                    if (pmrSocket != null) pmrSocket.sendVoice(mainPacket, packet);
+
+                    packetCount++;
+                    if (packetCount <= 3 || packetCount % 50 == 0) {
+                        AppLog.add("AudioEngine: пакет #" + packetCount + ", cmd=" + cmd + ", payloadLen=" + payloadLen);
+                    }
+                }
+            } catch (Exception e) {
+                AppLog.add("AudioEngine: ошибка в цикле записи — " + e);
+                return;
+            }
+        }
+    }
+
+    private static byte[] short2byte(short[] sArr) {
+        int length = sArr.length;
+        byte[] bArr = new byte[length * 2];
+        for (int i = 0; i < length; i++) {
+            int i2 = i * 2;
+            bArr[i2] = (byte) (sArr[i] & 255);
+            bArr[i2 + 1] = (byte) (sArr[i] >> 8);
+        }
+        return bArr;
+    }
+
+    private static short[] byte2short(byte[] b) {
+        short[] s = new short[b.length / 2];
+        for (int i = 0; i < s.length; i++) {
+            s[i] = (short) ((b[i * 2] & 255) | (b[(i * 2) + 1] << 8));
+        }
+        return s;
+    }
+}
