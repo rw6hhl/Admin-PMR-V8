@@ -32,13 +32,9 @@ public class ChanAdapter extends RecyclerView.Adapter<ChanAdapter.VH> {
 
     public void setActiveClient(int clientId) {
         if (this.activeClient == clientId) return;
-        int old = this.activeClient;
         this.activeClient = clientId;
-        for (int i = 0; i < users.size(); i++) {
-            if (users.get(i).id == old || users.get(i).id == clientId) {
-                notifyItemChanged(i);
-            }
-        }
+        // Принудительная перерисовка списка
+        notifyDataSetChanged();
     }
 
     @NonNull

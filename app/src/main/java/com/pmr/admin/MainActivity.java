@@ -37,11 +37,10 @@ public class MainActivity extends AppCompatActivity {
     private int currentChannel = 4;
     private ToneGenerator toneGen;
     private boolean soundEnabled = true;
+    
     private final Handler resetHandler = new Handler();
     private final Runnable resetSpeakingId = () -> {
-        tvSpeakingId.setText("");
-        tvSpeakingId.setTextColor(Color.BLACK);
-        tvSpeakingId.setTypeface(null, Typeface.NORMAL);
+        // Не сбрасываем, если хотим чтобы висел ID. Оставляем как есть.
     };
 
     private BroadcastReceiver voiceReceiver = new BroadcastReceiver() {
@@ -55,8 +54,6 @@ public class MainActivity extends AppCompatActivity {
                 tvSpeakingId.setText(text);
                 tvSpeakingId.setTextColor(Color.RED);
                 tvSpeakingId.setTypeface(null, Typeface.BOLD);
-                resetHandler.removeCallbacks(resetSpeakingId);
-                resetHandler.postDelayed(resetSpeakingId, 3000);
             }
         }
     };
@@ -79,9 +76,9 @@ public class MainActivity extends AppCompatActivity {
         }
 
         String savedVersion = prefs.getString("app_version", "0");
-        if (!savedVersion.equals("9.50")) {
+        if (!savedVersion.equals("9.51")) {
             prefs.edit()
-                .putString("app_version", "9.50")
+                .putString("app_version", "9.51")
                 .putString("MyMailIndex", "51953")
                 .putString("Priznak_pmr", "26000")
                 .putInt("PORT_prm", 5253)
@@ -91,7 +88,7 @@ public class MainActivity extends AppCompatActivity {
                 .putBoolean("simplex", true)
                 .putBoolean("is_admin_mode", false)
                 .apply();
-            AppLog.add("MainActivity: Настройки сброшены (V9.50): Priznak=26000, Mail=51953, Ch=4, PORT_prm=5253, PORT_prd=16000");
+            AppLog.add("MainActivity: Настройки сброшены (V9.51): Priznak=26000, Mail=51953, Ch=4, PORT_prm=5253, PORT_prd=16000");
         }
 
         requestMicPermission();
@@ -99,7 +96,9 @@ public class MainActivity extends AppCompatActivity {
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
         if (powerManager != null) {
-            wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "PMR::WakeLock");
+            // FULL_WAKE_LOCK (устаревший, но надежный для старых прошивок; FLAG_KEEP_SCREEN_ON + SCREEN_BRIGHT)
+            wakeLock = powerManager.newWakeLock(
+                    PowerManager.SCREEN_BRIGHT_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP, "PMR::WakeLock");
             wakeLock.acquire();
         }
 
@@ -350,6 +349,10 @@ public class MainActivity extends AppCompatActivity {
         AppLog.add("MainActivity: onResume, isAdminMode=" + isAdminMode + ", currentChannel=" + currentChannel);
         updateUI();
         registerReceiver(voiceReceiver, new IntentFilter("PMR_VOICE_RECEIVED"));
+        
+        if (wakeLock != null && !wakeLock.isHeld()) {
+            wakeLock.acquire();
+        }
     }
 
     @Override
