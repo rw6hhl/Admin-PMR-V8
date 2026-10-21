@@ -32,9 +32,11 @@ public class AudioEngine {
 
     // Настройки усиления
     private boolean onUsilMic = false;
+    private boolean onAgc = false;
     private float micGain = 2.0f;
     private boolean onUsilDin = false;
     private float dinGain = 0.4f;
+    private double maxMic = 0.0; // текущий коэффициент АРУ
 
     public AudioEngine(Context ctx, PmrSocket sock) {
         this.appCtx = ctx;
@@ -45,6 +47,7 @@ public class AudioEngine {
     public void loadGainSettings() {
         SharedPreferences prefs = appCtx.getSharedPreferences("pmr_prefs", Context.MODE_PRIVATE);
         onUsilMic = prefs.getBoolean("onUsilMic", false);
+        onAgc = prefs.getBoolean("onAgc", false);
         micGain = prefs.getFloat("MicUsildouble", 2.0f);
         onUsilDin = prefs.getBoolean("onUsilDin", false);
         dinGain = prefs.getFloat("DinUsildouble", 0.4f);
@@ -61,7 +64,33 @@ public class AudioEngine {
             }
             AppLog.add("AudioEngine: applyGain din=" + vol);
         }
-        AppLog.add("AudioEngine: applyGain mic=" + micGain + ", din=" + dinGain);
+        AppLog.add("AudioEngine: applyGain mic=" + micGain + ", agc=" + onAgc + ", din=" + dinGain);
+    }
+
+    // Аналог Delim_ili_Compress из admin.c
+    private void applyAgc(short[] pcm, int len) {
+        int max = 0;
+        for (int i = 0; i < len; i++) {
+            int val = Math.abs(pcm[i]);
+            if (max < val) max = val;
+        }
+        double r = 0x7FFF;
+        if (max == 0) max = 1; // защита от деления на 0
+        double delit = r / max;
+        
+        if (delit < maxMic) maxMic = delit;
+        if (delit > maxMic) {
+            // Плавное нарастание
+            if (micGain > 0.0 && maxMic < micGain) maxMic = maxMic + 0.1;
+        }
+        if (maxMic > micGain) maxMic = micGain;
+
+        for (int i = 0; i < len; i++) {
+            double rVal = pcm[i] * maxMic;
+            if (rVal > 32767) rVal = 32767;
+            if (rVal < -32768) rVal = -32768;
+            pcm[i] = (short) rVal;
+        }
     }
 
     public void setRej(int r) { this.rej = r; }
@@ -221,7 +250,7 @@ public class AudioEngine {
             }, "pmr-rec");
             this.recorderThread = thread;
             thread.start();
-            AppLog.add("AudioEngine: startRecording — rate=" + sampleRate + ", rej=" + rej + ", mic=" + onUsilMic + "/" + micGain);
+            AppLog.add("AudioEngine: startRecording — rate=" + sampleRate + ", rej=" + rej + ", mic=" + onUsilMic + "/" + micGain + ", agc=" + onAgc);
         } catch (Exception e) {
             AppLog.add("AudioEngine: ОШИБКА startRecording — " + e);
         }
@@ -245,6 +274,7 @@ public class AudioEngine {
         int cmd;
         int payloadLen;
         byte[] payload;
+        short[] pcm16Short = new short[BUF_ELEMENTS]; // для АРУ
         byte[] pcm16 = new byte[640];
         byte[] g711buf = new byte[BUF_ELEMENTS];
         int packetCount = 0;
@@ -253,7 +283,7 @@ public class AudioEngine {
             try {
                 int read = this.recorder.read(pcm16, 0, pcm16.length);
                 if (read > 0) {
-                    // Применение усиления микрофона
+                    // Применение статического усиления
                     if (onUsilMic) {
                         for (int i = 0; i < read; i += 2) {
                             int sample = (short) ((pcm16[i] & 0xFF) | (pcm16[i+1] << 8));
@@ -262,6 +292,19 @@ public class AudioEngine {
                             if (sample < -32768) sample = -32768;
                             pcm16[i] = (byte) (sample & 0xFF);
                             pcm16[i+1] = (byte) ((sample >> 8) & 0xFF);
+                        }
+                    }
+
+                    // Применение АРУ (если включено)
+                    if (onAgc) {
+                        int count = read / 2;
+                        for (int i = 0; i < count; i++) {
+                            pcm16Short[i] = (short) ((pcm16[i * 2] & 0xFF) | (pcm16[i * 2 + 1] << 8));
+                        }
+                        applyAgc(pcm16Short, count);
+                        for (int i = 0; i < count; i++) {
+                            pcm16[i * 2] = (byte) (pcm16Short[i] & 0xFF);
+                            pcm16[i * 2 + 1] = (byte) ((pcm16Short[i] >> 8) & 0xFF);
                         }
                     }
 

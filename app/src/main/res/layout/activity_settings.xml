@@ -179,6 +179,14 @@
                     android:textSize="18sp" />
             </LinearLayout>
 
+            <CheckBox
+                android:id="@+id/cbAgc"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="АРУ (Динамическое усиление)"
+                android:textColor="@color/colortextabout"
+                android:layout_marginBottom="16dp" />
+
             <!-- === Усиление выхода === -->
             <CheckBox
                 android:id="@+id/cbUsilDin"

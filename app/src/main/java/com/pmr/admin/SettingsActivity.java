@@ -21,7 +21,7 @@ public class SettingsActivity extends AppCompatActivity {
     private SharedPreferences prefs;
     private EditText editMailIndex, editPriznak, editPortPrm, editPortPrd, editIp;
     private EditText editUsilMic, editUsilDin;
-    private CheckBox cbUsilMic, cbUsilDin;
+    private CheckBox cbUsilMic, cbUsilDin, cbAgc;
     private LinearLayout layoutServerSettings;
     private Button btnChanList, btnLogs, btnLoadList;
     private CheckBox cbVerboseLog, cbSoundEnabled;
@@ -77,6 +77,7 @@ public class SettingsActivity extends AppCompatActivity {
         // Усиление
         cbUsilMic = findViewById(R.id.cbUsilMic);
         editUsilMic = findViewById(R.id.editUsilMic);
+        cbAgc = findViewById(R.id.cbAgc);
         cbUsilDin = findViewById(R.id.cbUsilDin);
         editUsilDin = findViewById(R.id.editUsilDin);
 
@@ -89,6 +90,8 @@ public class SettingsActivity extends AppCompatActivity {
         // Загрузка усиления
         cbUsilMic.setChecked(prefs.getBoolean("onUsilMic", false));
         editUsilMic.setText(String.valueOf(prefs.getFloat("MicUsildouble", 2.0f)));
+        
+        cbAgc.setChecked(prefs.getBoolean("onAgc", false));
         
         cbUsilDin.setChecked(prefs.getBoolean("onUsilDin", false));
         editUsilDin.setText(String.valueOf(prefs.getFloat("DinUsildouble", 0.4f)));
@@ -169,6 +172,7 @@ public class SettingsActivity extends AppCompatActivity {
             editor.putFloat("MicUsildouble", micVal);
         } catch (Exception ignored) {}
         editor.putBoolean("onUsilMic", cbUsilMic.isChecked());
+        editor.putBoolean("onAgc", cbAgc.isChecked());
 
         try {
             float dinVal = Float.parseFloat(editUsilDin.getText().toString());
@@ -180,6 +184,7 @@ public class SettingsActivity extends AppCompatActivity {
 
         AppLog.add("SettingsActivity: saveSettings — mail=" + editMailIndex.getText()
                 + ", mic=" + cbUsilMic.isChecked() + "/" + editUsilMic.getText()
+                + ", agc=" + cbAgc.isChecked()
                 + ", din=" + cbUsilDin.isChecked() + "/" + editUsilDin.getText());
 
         if (PmrService.pmrSocket != null) {
