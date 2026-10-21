@@ -79,9 +79,9 @@ public class MainActivity extends AppCompatActivity {
         }
 
         String savedVersion = prefs.getString("app_version", "0");
-        if (!savedVersion.equals("9.46")) {
+        if (!savedVersion.equals("9.48")) {
             prefs.edit()
-                .putString("app_version", "9.46")
+                .putString("app_version", "9.48")
                 .putString("MyMailIndex", "51953")
                 .putString("Priznak_pmr", "26000")
                 .putInt("PORT_prm", 5253)
@@ -91,7 +91,7 @@ public class MainActivity extends AppCompatActivity {
                 .putBoolean("simplex", true)
                 .putBoolean("is_admin_mode", false)
                 .apply();
-            AppLog.add("MainActivity: Настройки сброшены (V9.46): Priznak=26000, Mail=51953, Ch=4, PORT_prm=5253, PORT_prd=16000");
+            AppLog.add("MainActivity: Настройки сброшены (V9.48): Priznak=26000, Mail=51953, Ch=4, PORT_prm=5253, PORT_prd=16000");
         }
 
         requestMicPermission();
@@ -208,7 +208,10 @@ public class MainActivity extends AppCompatActivity {
                 currentChannel++;
                 updateUI();
                 prefs.edit().putInt("current_channel", currentChannel).apply();
-                AppLog.add("MainActivity: UP, канал " + old + " → " + currentChannel);
+                AppLog.add("MainActivity: UP, канал " + old + " → " + currentChannel + " (recreateSocket)");
+                if (PmrService.pmrSocket != null) {
+                    PmrService.pmrSocket.recreateSocket(this);
+                }
             }
         });
 
@@ -219,7 +222,10 @@ public class MainActivity extends AppCompatActivity {
                 currentChannel--;
                 updateUI();
                 prefs.edit().putInt("current_channel", currentChannel).apply();
-                AppLog.add("MainActivity: DOWN, канал " + old + " → " + currentChannel);
+                AppLog.add("MainActivity: DOWN, канал " + old + " → " + currentChannel + " (recreateSocket)");
+                if (PmrService.pmrSocket != null) {
+                    PmrService.pmrSocket.recreateSocket(this);
+                }
             }
         });
 
