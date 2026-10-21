@@ -23,18 +23,7 @@ public class ChanAdapter extends RecyclerView.Adapter<ChanAdapter.VH> {
     private int activeClient = -1;
     
     private final Handler resetHandler = new Handler(Looper.getMainLooper());
-    private final Runnable resetRunnable = () -> {
-        if (activeClient != -1) {
-            int old = activeClient;
-            activeClient = -1;
-            for (int i = 0; i < users.size(); i++) {
-                if (users.get(i).id == old) {
-                    notifyItemChanged(i);
-                    break;
-                }
-            }
-        }
-    };
+    private final Runnable resetRunnable;
 
     public interface OnBanClickListener {
         void onBanClick(ChanListActivity.User user, int position);
@@ -44,6 +33,20 @@ public class ChanAdapter extends RecyclerView.Adapter<ChanAdapter.VH> {
         this.ctx = ctx;
         this.users = users;
         this.listener = listener;
+        
+        // Инициализация Runnable внутри конструктора, чтобы users уже был присвоен
+        this.resetRunnable = () -> {
+            if (this.activeClient != -1) {
+                int old = this.activeClient;
+                this.activeClient = -1;
+                for (int i = 0; i < this.users.size(); i++) {
+                    if (this.users.get(i).id == old) {
+                        notifyItemChanged(i);
+                        break;
+                    }
+                }
+            }
+        };
     }
 
     public void setActiveClient(int clientId) {
