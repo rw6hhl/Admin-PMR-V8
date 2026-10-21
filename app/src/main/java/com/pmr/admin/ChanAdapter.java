@@ -3,6 +3,8 @@ package com.pmr.admin;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -19,6 +21,20 @@ public class ChanAdapter extends RecyclerView.Adapter<ChanAdapter.VH> {
     private final List<ChanListActivity.User> users;
     private final OnBanClickListener listener;
     private int activeClient = -1;
+    
+    private final Handler resetHandler = new Handler(Looper.getMainLooper());
+    private final Runnable resetRunnable = () -> {
+        if (activeClient != -1) {
+            int old = activeClient;
+            activeClient = -1;
+            for (int i = 0; i < users.size(); i++) {
+                if (users.get(i).id == old) {
+                    notifyItemChanged(i);
+                    break;
+                }
+            }
+        }
+    };
 
     public interface OnBanClickListener {
         void onBanClick(ChanListActivity.User user, int position);
@@ -31,10 +47,14 @@ public class ChanAdapter extends RecyclerView.Adapter<ChanAdapter.VH> {
     }
 
     public void setActiveClient(int clientId) {
-        if (this.activeClient == clientId) return;
-        this.activeClient = clientId;
-        // Принудительная перерисовка списка
-        notifyDataSetChanged();
+        if (this.activeClient != clientId) {
+            this.activeClient = clientId;
+            notifyDataSetChanged();
+        }
+        resetHandler.removeCallbacks(resetRunnable);
+        if (clientId != -1) {
+            resetHandler.postDelayed(resetRunnable, 3000); // сброс через 3 секунды
+        }
     }
 
     @NonNull
@@ -54,7 +74,6 @@ public class ChanAdapter extends RecyclerView.Adapter<ChanAdapter.VH> {
         }
         h.itemText.setText(String.format("%05d %s", user.id, name));
         
-        // Подсветка активного абонента (красный жирный)
         if (user.id == activeClient) {
             h.itemText.setTextColor(Color.RED);
             h.itemText.setTypeface(null, Typeface.BOLD);
@@ -63,7 +82,6 @@ public class ChanAdapter extends RecyclerView.Adapter<ChanAdapter.VH> {
             h.itemText.setTypeface(null, Typeface.NORMAL);
         }
 
-        // Кнопка БАН/РАЗБАН
         if (user.isBanned) {
             h.itemBtnBan.setText("РАЗБАН");
             h.itemBtnBan.setBackgroundColor(ContextCompat.getColor(ctx, android.R.color.holo_red_dark));

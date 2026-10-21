@@ -13,6 +13,7 @@ import android.media.AudioManager;
 import android.media.ToneGenerator;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.PowerManager;
 import android.view.MotionEvent;
 import android.view.View;
@@ -37,10 +38,10 @@ public class MainActivity extends AppCompatActivity {
     private int currentChannel = 4;
     private ToneGenerator toneGen;
     private boolean soundEnabled = true;
-    
-    private final Handler resetHandler = new Handler();
+
+    private final Handler speakingHandler = new Handler(Looper.getMainLooper());
     private final Runnable resetSpeakingId = () -> {
-        // Не сбрасываем, если хотим чтобы висел ID. Оставляем как есть.
+        tvSpeakingId.setText("");
     };
 
     private BroadcastReceiver voiceReceiver = new BroadcastReceiver() {
@@ -54,6 +55,10 @@ public class MainActivity extends AppCompatActivity {
                 tvSpeakingId.setText(text);
                 tvSpeakingId.setTextColor(Color.RED);
                 tvSpeakingId.setTypeface(null, Typeface.BOLD);
+                
+                // Сброс через 3 секунды
+                speakingHandler.removeCallbacks(resetSpeakingId);
+                speakingHandler.postDelayed(resetSpeakingId, 3000);
             }
         }
     };
@@ -76,9 +81,9 @@ public class MainActivity extends AppCompatActivity {
         }
 
         String savedVersion = prefs.getString("app_version", "0");
-        if (!savedVersion.equals("9.51")) {
+        if (!savedVersion.equals("9.52")) {
             prefs.edit()
-                .putString("app_version", "9.51")
+                .putString("app_version", "9.52")
                 .putString("MyMailIndex", "51953")
                 .putString("Priznak_pmr", "26000")
                 .putInt("PORT_prm", 5253)
@@ -88,7 +93,7 @@ public class MainActivity extends AppCompatActivity {
                 .putBoolean("simplex", true)
                 .putBoolean("is_admin_mode", false)
                 .apply();
-            AppLog.add("MainActivity: Настройки сброшены (V9.51): Priznak=26000, Mail=51953, Ch=4, PORT_prm=5253, PORT_prd=16000");
+            AppLog.add("MainActivity: Настройки сброшены (V9.52): Priznak=26000, Mail=51953, Ch=4, PORT_prm=5253, PORT_prd=16000");
         }
 
         requestMicPermission();
@@ -96,7 +101,6 @@ public class MainActivity extends AppCompatActivity {
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
         if (powerManager != null) {
-            // FULL_WAKE_LOCK (устаревший, но надежный для старых прошивок; FLAG_KEEP_SCREEN_ON + SCREEN_BRIGHT)
             wakeLock = powerManager.newWakeLock(
                     PowerManager.SCREEN_BRIGHT_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP, "PMR::WakeLock");
             wakeLock.acquire();
@@ -366,7 +370,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         AppLog.add("MainActivity: onDestroy");
-        resetHandler.removeCallbacks(resetSpeakingId);
+        speakingHandler.removeCallbacks(resetSpeakingId);
         if (toneGen != null) {
             try { toneGen.release(); } catch (Exception ignored) {}
             toneGen = null;
