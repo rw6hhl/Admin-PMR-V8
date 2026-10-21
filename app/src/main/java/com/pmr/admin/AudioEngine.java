@@ -1,6 +1,7 @@
 package com.pmr.admin;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.media.AudioRecord;
 import android.media.AudioTrack;
 
@@ -17,7 +18,6 @@ public class AudioEngine {
     private static final int SAMPLE_RATE_16K = 16000;
     private static final int SAMPLE_RATE_8K = 8000;
     private static final int SLOTS_PER_FORMAT = 20;
-    private static final float VOLUME_BOOST = 1.7f;
     private final Context appCtx;
     private final PmrSocket pmrSocket;
     private final G711Ua g711 = new G711Ua();
@@ -28,9 +28,37 @@ public class AudioEngine {
     private volatile boolean isPlaying = false;
     private volatile int rej = 22;
 
+    private boolean onUsilMic = false;
+    private float micGain = 2.0f;
+    private boolean onUsilDin = false;
+    private float dinGain = 0.4f;
+
     public AudioEngine(Context ctx, PmrSocket sock) {
         this.appCtx = ctx;
         this.pmrSocket = sock;
+        loadGainSettings();
+    }
+
+    public void loadGainSettings() {
+        SharedPreferences prefs = appCtx.getSharedPreferences("pmr_prefs", Context.MODE_PRIVATE);
+        onUsilMic = prefs.getBoolean("onUsilMic", false);
+        micGain = prefs.getFloat("MicUsildouble", 2.0f);
+        onUsilDin = prefs.getBoolean("onUsilDin", false);
+        dinGain = prefs.getFloat("DinUsildouble", 0.4f);
+    }
+
+    public void applyGain() {
+        loadGainSettings();
+        if (isPlaying) {
+            float vol = onUsilDin ? dinGain * 1.7f : 1.7f;
+            for (AudioTrack t : tracks) {
+                if (t != null) {
+                    try { t.setVolume(vol); } catch (Exception ignored) {}
+                }
+            }
+            AppLog.add("AudioEngine: applyGain din=" + vol);
+        }
+        AppLog.add("AudioEngine: applyGain mic=" + micGain + ", din=" + dinGain);
     }
 
     public void setRej(int r) { this.rej = r; }
@@ -50,22 +78,23 @@ public class AudioEngine {
 
     public void startPlaying() {
         if (this.isPlaying) return;
+        loadGainSettings();
+        float vol = onUsilDin ? dinGain * 1.7f : 1.7f;
+
         for (int i = 0; i < 20; i++) {
-            AudioTrack[] audioTrackArr = this.tracks;
-            if (audioTrackArr[i] == null) {
-                audioTrackArr[i] = new AudioTrack(3, 16000, 4, 2, AudioTrack.getMinBufferSize(16000, 4, 2), 1);
-                try { this.tracks[i].setVolume(VOLUME_BOOST); } catch (Exception ignored) {}
+            if (this.tracks[i] == null) {
+                this.tracks[i] = new AudioTrack(3, 16000, 4, 2, AudioTrack.getMinBufferSize(16000, 4, 2), 1);
+                try { this.tracks[i].setVolume(vol); } catch (Exception ignored) {}
             }
         }
         for (int i2 = 20; i2 < 40; i2++) {
-            AudioTrack[] audioTrackArr2 = this.tracks;
-            if (audioTrackArr2[i2] == null) {
-                audioTrackArr2[i2] = new AudioTrack(3, SAMPLE_RATE_8K, 4, 2, AudioTrack.getMinBufferSize(SAMPLE_RATE_8K, 4, 2), 1);
-                try { this.tracks[i2].setVolume(VOLUME_BOOST); } catch (Exception ignored) {}
+            if (this.tracks[i2] == null) {
+                this.tracks[i2] = new AudioTrack(3, SAMPLE_RATE_8K, 4, 2, AudioTrack.getMinBufferSize(SAMPLE_RATE_8K, 4, 2), 1);
+                try { this.tracks[i2].setVolume(vol); } catch (Exception ignored) {}
             }
         }
         this.isPlaying = true;
-        AppLog.add("AudioEngine: startPlaying, 40 слотов (20×16кГц, 20×8кГц), volume=" + VOLUME_BOOST);
+        AppLog.add("AudioEngine: startPlaying, volume=" + vol + ", slots=" + this.tracks.length);
     }
 
     public void stopPlaying() {
@@ -166,6 +195,7 @@ public class AudioEngine {
             AppLog.add("AudioEngine: startRecording — уже идёт запись, пропуск");
             return;
         }
+        loadGainSettings();
         if (this.rej == 22 || this.rej == 21 || this.rej == 19) {
             sampleRate = 16000;
             bufSize = 640;
@@ -186,7 +216,7 @@ public class AudioEngine {
             }, "pmr-rec");
             this.recorderThread = thread;
             thread.start();
-            AppLog.add("AudioEngine: startRecording — rate=" + sampleRate + ", rej=" + rej + ", bufSize=" + bufSize);
+            AppLog.add("AudioEngine: startRecording — rate=" + sampleRate + ", rej=" + rej + ", mic=" + onUsilMic + "/" + micGain);
         } catch (Exception e) {
             AppLog.add("AudioEngine: ОШИБКА startRecording — " + e);
         }
@@ -214,6 +244,18 @@ public class AudioEngine {
             try {
                 int read = this.recorder.read(pcm16, 0, pcm16.length);
                 if (read > 0) {
+                    // Применение усиления микрофона (если включено)
+                    if (onUsilMic) {
+                        for (int i = 0; i < read; i += 2) {
+                            int sample = (short) ((pcm16[i] & 0xFF) | (pcm16[i+1] << 8));
+                            sample = (int) (sample * micGain);
+                            if (sample > 32767) sample = 32767;
+                            if (sample < -32768) sample = -32768;
+                            pcm16[i] = (byte) (sample & 0xFF);
+                            pcm16[i+1] = (byte) ((sample >> 8) & 0xFF);
+                        }
+                    }
+
                     if (this.rej == 22) {
                         cmd = 22;
                         this.g711.encode(pcm16, 0, read, g711buf);
@@ -245,52 +287,3 @@ public class AudioEngine {
                     } else {
                         continue;
                     }
-                    PmrSocket pmrSocket = this.pmrSocket;
-                    int secret = pmrSocket != null ? pmrSocket.getKanalSecretInstance() : 0;
-                    byte[] packet = new byte[payloadLen + 6];
-                    packet[0] = (byte) cmd;
-                    packet[1] = 0;
-                    packet[2] = (byte) (PmrSocket.Priznak_pmr & 255);
-                    packet[3] = (byte) ((PmrSocket.Priznak_pmr >> 8) & 255);
-                    packet[4] = (byte) (secret & 255);
-                    packet[5] = (byte) ((secret >> 8) & 255);
-                    System.arraycopy(payload, 0, packet, 6, payloadLen);
-                    byte[] mainPacket = new byte[payloadLen + 4];
-                    mainPacket[0] = (byte) cmd;
-                    mainPacket[1] = 0;
-                    mainPacket[2] = (byte) (PmrSocket.Priznak_pmr & 255);
-                    mainPacket[3] = (byte) ((PmrSocket.Priznak_pmr >> 8) & 255);
-                    System.arraycopy(payload, 0, mainPacket, 4, payloadLen);
-                    if (pmrSocket != null) pmrSocket.sendVoice(mainPacket, packet);
-
-                    packetCount++;
-                    if (packetCount <= 3 || packetCount % 50 == 0) {
-                        AppLog.add("AudioEngine: пакет #" + packetCount + ", cmd=" + cmd + ", payloadLen=" + payloadLen + ", secret=" + secret);
-                    }
-                }
-            } catch (Exception e) {
-                AppLog.add("AudioEngine: ошибка в цикле записи — " + e);
-                return;
-            }
-        }
-    }
-
-    private static byte[] short2byte(short[] sArr) {
-        int length = sArr.length;
-        byte[] bArr = new byte[length * 2];
-        for (int i = 0; i < length; i++) {
-            int i2 = i * 2;
-            bArr[i2] = (byte) (sArr[i] & 255);
-            bArr[i2 + 1] = (byte) (sArr[i] >> 8);
-        }
-        return bArr;
-    }
-
-    private static short[] byte2short(byte[] b) {
-        short[] s = new short[b.length / 2];
-        for (int i = 0; i < s.length; i++) {
-            s[i] = (short) ((b[i * 2] & 255) | (b[(i * 2) + 1] << 8));
-        }
-        return s;
-    }
-}

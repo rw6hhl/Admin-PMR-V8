@@ -20,6 +20,8 @@ public class SettingsActivity extends AppCompatActivity {
 
     private SharedPreferences prefs;
     private EditText editMailIndex, editPriznak, editPortPrm, editPortPrd, editIp;
+    private EditText editUsilMic, editUsilDin;
+    private CheckBox cbUsilMic, cbUsilDin;
     private LinearLayout layoutServerSettings;
     private Button btnChanList, btnLogs, btnLoadList;
     private CheckBox cbVerboseLog, cbSoundEnabled;
@@ -45,7 +47,6 @@ public class SettingsActivity extends AppCompatActivity {
                         Toast.makeText(this, "Файл пуст или неверный формат", Toast.LENGTH_LONG).show();
                     } else {
                         Toast.makeText(this, "Загружено имён: " + count, Toast.LENGTH_LONG).show();
-                        AppLog.add("NameBook: загружено имён из list.txt: " + count);
                     }
                 } catch (Exception e) {
                     Toast.makeText(this, "Ошибка: " + e.getMessage(), Toast.LENGTH_LONG).show();
@@ -73,11 +74,24 @@ public class SettingsActivity extends AppCompatActivity {
         cbVerboseLog = findViewById(R.id.cbVerboseLog);
         cbSoundEnabled = findViewById(R.id.cbSoundEnabled);
 
+        // Усиление
+        cbUsilMic = findViewById(R.id.cbUsilMic);
+        editUsilMic = findViewById(R.id.editUsilMic);
+        cbUsilDin = findViewById(R.id.cbUsilDin);
+        editUsilDin = findViewById(R.id.editUsilDin);
+
         editMailIndex.setText(prefs.getString("MyMailIndex", "51953"));
         editPriznak.setText(prefs.getString("Priznak_pmr", "26000"));
         editPortPrm.setText(String.valueOf(prefs.getInt("PORT_prm", 5253)));
         editPortPrd.setText(String.valueOf(prefs.getInt("PORT_prd", 16000)));
         editIp.setText(prefs.getString("ip_server", "185.221.154.39"));
+
+        // Загрузка усиления
+        cbUsilMic.setChecked(prefs.getBoolean("onUsilMic", false));
+        editUsilMic.setText(String.valueOf(prefs.getFloat("MicUsildouble", 2.0f)));
+        
+        cbUsilDin.setChecked(prefs.getBoolean("onUsilDin", false));
+        editUsilDin.setText(String.valueOf(prefs.getFloat("DinUsildouble", 0.4f)));
 
         if (cbVerboseLog != null) {
             cbVerboseLog.setChecked(prefs.getBoolean("verbose_log", true));
@@ -102,7 +116,6 @@ public class SettingsActivity extends AppCompatActivity {
 
         findViewById(R.id.btnToggleServer).setOnClickListener(v -> {
             layoutServerSettings.setVisibility(layoutServerSettings.getVisibility() == View.GONE ? View.VISIBLE : View.GONE);
-            AppLog.add("SettingsActivity: layoutServerSettings → " + (layoutServerSettings.getVisibility() == View.VISIBLE ? "VISIBLE" : "GONE"));
         });
 
         findViewById(R.id.btnCodecDialog).setOnClickListener(v -> showCodecDialog());
@@ -111,26 +124,18 @@ public class SettingsActivity extends AppCompatActivity {
             try {
                 AppLog.add("SettingsActivity: нажата «Список» → ChanListActivity");
                 startActivity(new Intent(this, ChanListActivity.class));
-                AppLog.add("SettingsActivity: startActivity(ChanListActivity) — OK");
             } catch (Exception e) {
-                AppLog.add("SettingsActivity: ОШИБКА startActivity(ChanListActivity) — "
-                        + e.getClass().getSimpleName() + ": " + e.getMessage());
-                Toast.makeText(this, "Ошибка: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                AppLog.add("SettingsActivity: ОШИБКА startActivity(ChanListActivity) — " + e.getMessage());
             }
         });
-        btnLogs.setOnClickListener(v -> {
-            AppLog.add("SettingsActivity: нажата «Логи» → LogActivity");
-            startActivity(new Intent(this, LogActivity.class));
-        });
+        btnLogs.setOnClickListener(v -> startActivity(new Intent(this, LogActivity.class)));
 
         if (btnLoadList != null) {
             btnLoadList.setOnClickListener(v -> {
                 try {
-                    AppLog.add("SettingsActivity: нажата «ЗАГРУЗИТЬ list.txt» → openDocument");
                     openListLauncher.launch(new String[]{"*/*"});
                 } catch (Exception e) {
-                    Toast.makeText(this, "Нет файлового менеджера: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                    AppLog.add("SettingsActivity: ОШИБКА launch — " + e.getMessage());
+                    Toast.makeText(this, "Нет файлового менеджера", Toast.LENGTH_LONG).show();
                 }
             });
         }
@@ -141,12 +146,10 @@ public class SettingsActivity extends AppCompatActivity {
     private void showCodecDialog() {
         String[] codecs = {"GSM 32 kbps", "PCM 8 bit 8000 Hz", "G711 8000 Hz", "G711 16000 Hz", "PCM 8 bit 16000 Hz", "PCM 16 bit 8000 Hz", "PCM 16 bit 16000 Hz"};
         int currentCodec = prefs.getInt("codec", 3);
-        AppLog.add("SettingsActivity: showCodecDialog, текущий=" + currentCodec);
         new AlertDialog.Builder(this)
                 .setTitle("Режим передачи")
                 .setSingleChoiceItems(codecs, currentCodec, (dialog, which) -> {
                     prefs.edit().putInt("codec", which).apply();
-                    AppLog.add("SettingsActivity: codec=" + which + " (" + codecs[which] + ")");
                     dialog.dismiss();
                 })
                 .show();
@@ -159,18 +162,34 @@ public class SettingsActivity extends AppCompatActivity {
         editor.putInt("PORT_prm", Integer.parseInt(editPortPrm.getText().toString()));
         editor.putInt("PORT_prd", Integer.parseInt(editPortPrd.getText().toString()));
         editor.putString("ip_server", editIp.getText().toString());
+
+        // Сохраняем усиление
+        try {
+            float micVal = Float.parseFloat(editUsilMic.getText().toString());
+            editor.putFloat("MicUsildouble", micVal);
+        } catch (Exception ignored) {}
+        editor.putBoolean("onUsilMic", cbUsilMic.isChecked());
+
+        try {
+            float dinVal = Float.parseFloat(editUsilDin.getText().toString());
+            editor.putFloat("DinUsildouble", dinVal);
+        } catch (Exception ignored) {}
+        editor.putBoolean("onUsilDin", cbUsilDin.isChecked());
+
         editor.apply();
+
         AppLog.add("SettingsActivity: saveSettings — mail=" + editMailIndex.getText()
-                + ", priznak=" + editPriznak.getText()
-                + ", PORT_prm=" + editPortPrm.getText()
-                + ", PORT_prd=" + editPortPrd.getText()
-                + ", ip=" + editIp.getText());
+                + ", mic=" + cbUsilMic.isChecked() + "/" + editUsilMic.getText()
+                + ", din=" + cbUsilDin.isChecked() + "/" + editUsilDin.getText());
+
         if (PmrService.pmrSocket != null) {
             PmrService.pmrSocket.recreateSocket(this);
-            AppLog.add("SettingsActivity: настройки применены в работе (recreateSocket)");
-        } else {
-            AppLog.add("SettingsActivity: pmrSocket == null, настройки применятся при следующем старте сервиса");
+            if (PmrService.audioEngine != null) {
+                PmrService.audioEngine.applyGain();
+            }
+            AppLog.add("SettingsActivity: настройки применены в работе (recreateSocket + applyGain)");
         }
+        
         finish();
     }
 }
