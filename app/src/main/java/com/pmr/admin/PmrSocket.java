@@ -301,7 +301,7 @@ public class PmrSocket {
         }
         
         new Thread(() -> {
-            // Защита от самобана (из V4.2)
+            // Защита от самобана
             if (targetId == Priznak_pmr) {
                 AppLog.add("PmrSocket: БАН запрещён — попытка забанить самого себя (ID=" + targetId + ")");
                 return;
@@ -309,15 +309,15 @@ public class PmrSocket {
 
             byte[] ban = new byte[4];
             ban[0] = (byte) 222;
-            ban[1] = 0; // В V4.2 здесь передается 13, но в нашем коде используется 0
+            ban[1] = 13; // <-- ИСПРАВЛЕНО: сервер ожидает kanal=13 для команды 222 (как в admin.c)
             ban[2] = (byte) (targetId & 0xFF);
             ban[3] = (byte) ((targetId >> 8) & 0xFF);
             
             try {
                 socket.send(new DatagramPacket(ban, 4, serverAddr, portPrd + kanalPrd));
-                AppLog.add("PmrSocket: → cmd=222 (БАН/РАЗБАН) id=" + targetId + ", порт=" + (portPrd + kanalPrd));
+                AppLog.add("PmrSocket: → cmd=222 (БАН/РАЗБАН) id=" + targetId + ", kanal=13, порт=" + (portPrd + kanalPrd));
                 
-                // Двойной запрос списка (из V4.2)
+                // Двойной запрос списка (как в V4.2)
                 requestChanList();
                 Thread.sleep(300);
                 requestChanList();
