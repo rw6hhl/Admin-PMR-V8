@@ -53,7 +53,11 @@ public class MainActivity extends AppCompatActivity {
             if (clientNumber != -1) {
                 int id = PmrSocket.getClientIdByNumber(clientNumber);
                 if (id == -1) {
-                    AppLog.add("MainActivity: CALL пропущен — number=" + clientNumber + " не найден в lastChanList (или админ 11777)");
+                    AppLog.add("MainActivity: CALL пропущен — number=" + clientNumber + " не найден в lastChanList");
+                    return;
+                }
+                if (PmrSocket.isAdminObserver(id)) {
+                    AppLog.add("MainActivity: CALL пропущен — id=" + id + " (админ/наблюдатель)");
                     return;
                 }
                 String name = NameBook.getName(MainActivity.this, id);

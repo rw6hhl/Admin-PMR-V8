@@ -96,7 +96,6 @@ public class ChanAdapter extends RecyclerView.Adapter<ChanAdapter.VH> {
             h.itemText.setTypeface(null, Typeface.NORMAL);
         }
 
-        // Текст убран, цвет квадрата зависит от бана (ответа сервера)
         h.itemBtnBan.setText("");
         if (user.isBanned) {
             AppLog.add("ChanAdapter: onBindViewHolder — number=" + user.number + " ЗАБАНЕН (Красный квадрат)");

@@ -13,7 +13,7 @@ import java.util.List;
 
 public class PmrSocket {
     private static final String TAG = "PmrSocket";
-    private static final int IGNORED_ADMIN_ID = 11777; // админские записи — игнорируем (V9.68)
+    private static final int ADMIN_OBSERVER_ID = 11777; // админ/наблюдатель — не говорит, фильтруется в UI (V9.69)
     private DatagramSocket socket;
     private InetAddress serverAddr;
     private boolean isRunning = false;
@@ -56,6 +56,10 @@ public class PmrSocket {
     }
     private static OnChanListListener chanListListener;
     private static List<ChanEntry> lastChanList = new ArrayList<>();
+
+    public static boolean isAdminObserver(int id) {
+        return id == ADMIN_OBSERVER_ID;
+    }
 
     public PmrSocket(Context context, OnVoiceListener listener) {
         this.voiceListener = listener;
@@ -286,14 +290,12 @@ public class PmrSocket {
             String ip = ip0 + "." + ip1 + "." + ip2 + "." + ip3;
             boolean ban = (data[offset + 12] & 0xFF) != 0;
 
-            if (id == IGNORED_ADMIN_ID) {
-                AppLog.add("PmrSocket:   запись #" + i + " ПРОПУЩЕНА (id=" + id + " — админ, V9.68)");
-                continue;
-            }
-
+            // V9.69: сохраняем ВСЕ записи (включая 11777), чтобы number→id работал.
+            // В UI (LIST/CALL) 11777 фильтруется отдельно.
             entries.add(new ChanEntry(number, id, ip, ban));
             AppLog.add("PmrSocket:   запись #" + i + " — numberRaw=" + numberRaw + ", number=" + number
-                    + ", id=" + id + ", ip=" + ip + ", ban=" + ban);
+                    + ", id=" + id + (id == ADMIN_OBSERVER_ID ? " (админ/наблюдатель)" : "")
+                    + ", ip=" + ip + ", ban=" + ban);
         }
 
         lastChanList = entries;
