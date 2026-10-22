@@ -33,6 +33,7 @@ public class ChanAdapter extends RecyclerView.Adapter<ChanAdapter.VH> {
         this.ctx = ctx;
         this.users = users;
         this.listener = listener;
+        setHasStableIds(true);
         
         this.resetRunnable = () -> {
             if (this.activeNumber != -1) {
@@ -49,6 +50,11 @@ public class ChanAdapter extends RecyclerView.Adapter<ChanAdapter.VH> {
         };
     }
 
+    @Override
+    public long getItemId(int position) {
+        return users.get(position).number;
+    }
+
     public void setActiveNumber(int number) {
         AppLog.add("ChanAdapter: setActiveNumber(" + number + "), текущий activeNumber=" + this.activeNumber);
         if (this.activeNumber != number) {
@@ -58,7 +64,7 @@ public class ChanAdapter extends RecyclerView.Adapter<ChanAdapter.VH> {
         }
         resetHandler.removeCallbacks(resetRunnable);
         if (number != -1) {
-            resetHandler.postDelayed(resetRunnable, 1000); 
+            resetHandler.postDelayed(resetRunnable, 400); // 0.4 сек
         }
     }
 
@@ -89,8 +95,10 @@ public class ChanAdapter extends RecyclerView.Adapter<ChanAdapter.VH> {
             h.itemText.setTypeface(null, Typeface.NORMAL);
         }
 
+        // Текст убран, цвет квадрата зависит от бана (ответа сервера)
         h.itemBtnBan.setText("");
         if (user.isBanned) {
+            AppLog.add("ChanAdapter: onBindViewHolder — number=" + user.number + " ЗАБАНЕН (Красный квадрат)");
             h.itemBtnBan.setBackgroundColor(ContextCompat.getColor(ctx, android.R.color.holo_red_dark));
         } else {
             h.itemBtnBan.setBackgroundColor(ContextCompat.getColor(ctx, android.R.color.holo_green_dark));
