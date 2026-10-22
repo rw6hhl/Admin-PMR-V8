@@ -55,7 +55,8 @@ public class ChanAdapter extends RecyclerView.Adapter<ChanAdapter.VH> {
         }
         resetHandler.removeCallbacks(resetRunnable);
         if (number != -1) {
-            resetHandler.postDelayed(resetRunnable, 3000);
+            // Сброс через 1 секунду (изменено с 3000 на 1000)
+            resetHandler.postDelayed(resetRunnable, 1000); 
         }
     }
 
@@ -75,10 +76,10 @@ public class ChanAdapter extends RecyclerView.Adapter<ChanAdapter.VH> {
             name = name.substring(0, MAX_NAME_LEN - 1) + "…";
         }
         
-        // Пункт 3: Формат "26439 TX KMV" (без № и ID)
+        // Формат "26439 TX KMV" (без № и ID)
         h.itemText.setText(String.format("%d %s", user.id, name));
         
-        // Пункт 3: Подсветка активного абонента (сравниваем по number)
+        // Подсветка активного абонента (сравниваем по number)
         if (user.number == activeNumber) {
             h.itemText.setTextColor(Color.RED);
             h.itemText.setTypeface(null, Typeface.BOLD);
@@ -87,7 +88,7 @@ public class ChanAdapter extends RecyclerView.Adapter<ChanAdapter.VH> {
             h.itemText.setTypeface(null, Typeface.NORMAL);
         }
 
-        // Пункт 2: Текст убран, цвет квадрата зависит от бана
+        // Текст убран, цвет квадрата зависит от бана (ответа сервера)
         h.itemBtnBan.setText("");
         if (user.isBanned) {
             h.itemBtnBan.setBackgroundColor(ContextCompat.getColor(ctx, android.R.color.holo_red_dark));
