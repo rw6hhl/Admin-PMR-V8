@@ -54,7 +54,12 @@ public class MainActivity extends AppCompatActivity {
                 int id = PmrSocket.getClientIdByNumber(clientNumber);
                 String name = (id != -1) ? NameBook.getName(MainActivity.this, id) : "Неизвестный";
                 
-                String text = String.format("%d %s", clientNumber, name); // Пример: 26439 TX KMV
+                String text;
+                if (id != -1) {
+                    text = String.format("%d %s", id, name); // Пример: 26439 TX KMV
+                } else {
+                    text = String.format("? %s", name);
+                }
                 
                 AppLog.add("MainActivity: вывод в CALL — number=" + clientNumber + ", id=" + id + ", text=" + text);
                 tvSpeakingId.setText(text);
