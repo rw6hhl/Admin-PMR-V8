@@ -28,16 +28,16 @@ public class PmrSocket {
     private int kanalSecret = 0;
     private int clientNumber = -1;
     private int pingCount = 0;
-    private static int lastVoiceNumber = -1; // последний говоривший (номер на сервере, поле i)
+    private static int lastVoiceNumber = -1;
 
     public interface OnVoiceListener {
-        void onVoiceReceived(int clientNumber); // передаем номер (поле i)
+        void onVoiceReceived(int clientNumber);
     }
     private OnVoiceListener voiceListener;
 
     public static class ChanEntry {
-        public int number;   // i — номер на сервере
-        public int id;       // Id — признак
+        public int number;
+        public int id;
         public String ip;
         public boolean ban;
         public ChanEntry(int number, int id, String ip, boolean ban) {
@@ -234,7 +234,6 @@ public class PmrSocket {
         if (kanal != kanalPrd && kanalPrd != 0) return;
 
         if (command == 22) {
-            // client — это номер на сервере (поле i)
             lastVoiceNumber = client;
             AppLog.add("PmrSocket: ← cmd=22 (голос), kanal=" + kanal + ", number=" + client + ", size=" + data.length);
         } else {
@@ -266,7 +265,10 @@ public class PmrSocket {
         for (int i = 0; i < count; i++) {
             int offset = 4 + (i * 13);
             if (offset + 12 >= data.length) break;
-            int number = (data[offset + 0] & 0xFF) | ((data[offset + 1] & 0xFF) << 8);
+            // Поле i (number) — unsigned short в начале записи. Сервер в cmd=22 шлет i (с 0),
+            // а в cmd=234, вероятно, i+1 (с 1). Поэтому вычитаем 1.
+            int numberRaw = (data[offset + 0] & 0xFF) | ((data[offset + 1] & 0xFF) << 8);
+            int number = numberRaw - 1; // приводим к 0-based, как в cmd=22
             int id = (data[offset + 4] & 0xFF) | ((data[offset + 5] & 0xFF) << 8);
             int ip0 = data[offset + 8] & 0xFF;
             int ip1 = data[offset + 9] & 0xFF;
@@ -275,7 +277,8 @@ public class PmrSocket {
             String ip = ip0 + "." + ip1 + "." + ip2 + "." + ip3;
             boolean ban = (data[offset + 12] & 0xFF) != 0;
             entries.add(new ChanEntry(number, id, ip, ban));
-            AppLog.add("PmrSocket:   запись #" + i + " — number=" + number + ", id=" + id + ", ip=" + ip + ", ban=" + ban);
+            AppLog.add("PmrSocket:   запись #" + i + " — numberRaw=" + numberRaw + ", number=" + number
+                    + ", id=" + id + ", ip=" + ip + ", ban=" + ban);
         }
 
         lastChanList = entries;
@@ -287,9 +290,6 @@ public class PmrSocket {
         }
     }
 
-    /**
-     * Поиск признака (id) по номеру на сервере (number, поле i).
-     */
     public static int getClientIdByNumber(int number) {
         for (ChanEntry e : lastChanList) {
             if (e.number == number) return e.id;
@@ -335,14 +335,17 @@ public class PmrSocket {
             byte[] ban = new byte[4];
             ban[0] = (byte) 222;
             ban[1] = 13;
-            ban[2] = (byte) (targetNumber & 0xFF);
-            ban[3] = (byte) ((targetNumber >> 8) & 0xFF);
+            // В cmd=222 сервер ждет number (поле i) в том виде, в каком он приходит в списке.
+            // Если в списке number 1-based (i+1), а мы храним 0-based, нужно вернуть +1.
+            int rawNumber = targetNumber + 1;
+            ban[2] = (byte) (rawNumber & 0xFF);
+            ban[3] = (byte) ((rawNumber >> 8) & 0xFF);
             
             try {
                 int banPort = portPrd + 13;
                 socket.send(new DatagramPacket(ban, 4, serverAddr, banPort));
-                AppLog.add("PmrSocket: → cmd=222 (БАН/РАЗБАН) number=" + targetNumber + ", id=" + targetId
-                        + ", kanal=13, порт=" + banPort);
+                AppLog.add("PmrSocket: → cmd=222 (БАН/РАЗБАН) number=" + targetNumber
+                        + " (rawNumber=" + rawNumber + "), id=" + targetId + ", kanal=13, порт=" + banPort);
                 
                 requestChanList();
                 Thread.sleep(300);
