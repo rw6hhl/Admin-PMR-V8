@@ -35,8 +35,8 @@ public class PmrSocket {
     private OnVoiceListener voiceListener;
 
     public static class ChanEntry {
-        public int number;   // i — номер на сервере
-        public int id;       // Id — признак
+        public int number;
+        public int id;
         public String ip;
         public boolean ban;
         public ChanEntry(int number, int id, String ip, boolean ban) {
@@ -232,13 +232,21 @@ public class PmrSocket {
 
         if (kanal != kanalPrd && kanalPrd != 0) return;
 
-        if (command != 22) {
+        // ЛОГ: Подробный лог для cmd=22
+        if (command == 22) {
+            AppLog.add("PmrSocket: ← cmd=22 (голос), kanal=" + kanal + ", client=" + client + ", size=" + data.length);
+        } else {
             AppLog.add("PmrSocket: ← cmd=" + command + ", kanal=" + kanal + ", client=" + client + ", size=" + data.length);
         }
 
         if (command == 22 && data.length == 324) {
             if (audioEngine != null) audioEngine.pushToRingBuffer(data);
-            if (voiceListener != null) voiceListener.onVoiceReceived(client);
+            if (voiceListener != null) {
+                AppLog.add("PmrSocket: вызываю voiceListener.onVoiceReceived(" + client + ")");
+                voiceListener.onVoiceReceived(client);
+            } else {
+                AppLog.add("PmrSocket: ОШИБКА — voiceListener == null, голос не передан!");
+            }
         } else if (command == 110) {
             if (clientNumber != client) {
                 AppLog.add("PmrSocket: cmd=110 — количество изменилось " + clientNumber + " → " + client + " → requestChanList");
@@ -280,10 +288,6 @@ public class PmrSocket {
         }
     }
 
-    /**
-     * Поиск номера (number) по признаку (id) в последнем полученном списке.
-     * Если найдено несколько с одинаковым id, возвращается первый.
-     */
     public static int getClientNumberById(int id) {
         for (ChanEntry e : lastChanList) {
             if (e.id == id) return e.number;
@@ -360,6 +364,8 @@ public class PmrSocket {
         try {
             if (mainPacket != null) {
                 socket.send(new DatagramPacket(mainPacket, mainPacket.length, serverAddr, portPrd + kanalPrd));
+                // ЛОГ: отправка голоса
+                AppLog.add("PmrSocket: → sendVoice, порт=" + (portPrd + kanalPrd) + ", size=" + mainPacket.length);
             }
         } catch (IOException e) {
             AppLog.add("PmrSocket: ОШИБКА sendVoice — " + e.getMessage());

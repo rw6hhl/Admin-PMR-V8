@@ -48,18 +48,19 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onReceive(Context context, Intent intent) {
             int clientId = intent.getIntExtra("clientId", -1);
+            AppLog.add("MainActivity: BroadcastReceiver получил PMR_VOICE_RECEIVED, clientId=" + clientId);
             if (clientId != -1) {
                 String name = NameBook.getName(MainActivity.this, clientId);
-                // Находим номер на сервере по признаку
                 int number = PmrSocket.getClientNumberById(clientId);
                 String text;
                 if (number != -1) {
-                    text = String.format("%d %s", number, name); // Пример: 26439 TX KMV
+                    text = String.format("%d %s", number, name);
                 } else {
-                    text = String.format("%d %s", clientId, name); // fallback
+                    AppLog.add("MainActivity: ВНИМАНИЕ — getClientNumberById вернул -1 для id=" + clientId);
+                    text = String.format("%d %s", clientId, name);
                 }
                 
-                AppLog.add("MainActivity: PMR_VOICE_RECEIVED clientId=" + clientId + ", text=" + text);
+                AppLog.add("MainActivity: вывод в CALL — text=" + text);
                 tvSpeakingId.setText(text);
                 tvSpeakingId.setTextColor(Color.RED);
                 tvSpeakingId.setTypeface(null, Typeface.BOLD);

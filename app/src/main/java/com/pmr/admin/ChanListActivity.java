@@ -52,7 +52,6 @@ public class ChanListActivity extends AppCompatActivity implements PmrSocket.OnC
                 } else {
                     PmrService.getPmrSocket().sendUnban(user.number, user.id);
                 }
-                // НЕ меняем вручную, ждем ответа сервера
                 Toast.makeText(this, "Команда отправлена. Ожидание ответа сервера...", Toast.LENGTH_SHORT).show();
             } else {
                 AppLog.add("ChanListActivity: pmrSocket == null — сервис не запущен");
@@ -96,11 +95,14 @@ public class ChanListActivity extends AppCompatActivity implements PmrSocket.OnC
 
     @Override
     public void onVoiceReceived(int clientId) {
+        AppLog.add("ChanListActivity: onVoiceReceived — clientId=" + clientId);
         runOnUiThread(() -> {
             if (adapter != null) {
-                // Находим номер по ID и передаем в адаптер
                 int num = PmrSocket.getClientNumberById(clientId);
+                AppLog.add("ChanListActivity: найден number=" + num + " для clientId=" + clientId + " -> setActiveNumber");
                 adapter.setActiveNumber(num);
+            } else {
+                AppLog.add("ChanListActivity: adapter == null, подсветка невозможна");
             }
         });
     }

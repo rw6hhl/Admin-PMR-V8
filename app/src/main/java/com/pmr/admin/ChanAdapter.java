@@ -20,7 +20,7 @@ public class ChanAdapter extends RecyclerView.Adapter<ChanAdapter.VH> {
     private final Context ctx;
     private final List<ChanListActivity.User> users;
     private final OnBanClickListener listener;
-    private int activeNumber = -1; // Используем number для подсветки активного
+    private int activeNumber = -1;
     
     private final Handler resetHandler = new Handler(Looper.getMainLooper());
     private final Runnable resetRunnable;
@@ -37,6 +37,7 @@ public class ChanAdapter extends RecyclerView.Adapter<ChanAdapter.VH> {
         this.resetRunnable = () -> {
             if (this.activeNumber != -1) {
                 int old = this.activeNumber;
+                AppLog.add("ChanAdapter: resetRunnable — сброс activeNumber с " + old + " на -1");
                 this.activeNumber = -1;
                 for (int i = 0; i < this.users.size(); i++) {
                     if (this.users.get(i).number == old) {
@@ -49,13 +50,14 @@ public class ChanAdapter extends RecyclerView.Adapter<ChanAdapter.VH> {
     }
 
     public void setActiveNumber(int number) {
+        AppLog.add("ChanAdapter: setActiveNumber(" + number + "), текущий activeNumber=" + this.activeNumber);
         if (this.activeNumber != number) {
             this.activeNumber = number;
+            AppLog.add("ChanAdapter: activeNumber изменен на " + number + " → notifyDataSetChanged()");
             notifyDataSetChanged();
         }
         resetHandler.removeCallbacks(resetRunnable);
         if (number != -1) {
-            // Сброс через 1 секунду (изменено с 3000 на 1000)
             resetHandler.postDelayed(resetRunnable, 1000); 
         }
     }
@@ -76,11 +78,10 @@ public class ChanAdapter extends RecyclerView.Adapter<ChanAdapter.VH> {
             name = name.substring(0, MAX_NAME_LEN - 1) + "…";
         }
         
-        // Формат "26439 TX KMV" (без № и ID)
         h.itemText.setText(String.format("%d %s", user.id, name));
         
-        // Подсветка активного абонента (сравниваем по number)
         if (user.number == activeNumber) {
+            AppLog.add("ChanAdapter: onBindViewHolder — " + user.number + " АКТИВЕН (Красный)");
             h.itemText.setTextColor(Color.RED);
             h.itemText.setTypeface(null, Typeface.BOLD);
         } else {
@@ -88,7 +89,6 @@ public class ChanAdapter extends RecyclerView.Adapter<ChanAdapter.VH> {
             h.itemText.setTypeface(null, Typeface.NORMAL);
         }
 
-        // Текст убран, цвет квадрата зависит от бана (ответа сервера)
         h.itemBtnBan.setText("");
         if (user.isBanned) {
             h.itemBtnBan.setBackgroundColor(ContextCompat.getColor(ctx, android.R.color.holo_red_dark));
