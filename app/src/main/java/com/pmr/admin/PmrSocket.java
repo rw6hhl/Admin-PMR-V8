@@ -28,6 +28,7 @@ public class PmrSocket {
     private int kanalSecret = 0;
     private int clientNumber = -1;
     private int pingCount = 0;
+    private static int lastVoiceClient = -1; // последний говоривший (id)
 
     public interface OnVoiceListener {
         void onVoiceReceived(int clientId);
@@ -35,8 +36,8 @@ public class PmrSocket {
     private OnVoiceListener voiceListener;
 
     public static class ChanEntry {
-        public int number;
-        public int id;
+        public int number;   // i — номер на сервере
+        public int id;       // Id — признак
         public String ip;
         public boolean ban;
         public ChanEntry(int number, int id, String ip, boolean ban) {
@@ -232,8 +233,9 @@ public class PmrSocket {
 
         if (kanal != kanalPrd && kanalPrd != 0) return;
 
-        // ЛОГ: Подробный лог для cmd=22
         if (command == 22) {
+            // Сохраняем последнего говорившего
+            lastVoiceClient = client;
             AppLog.add("PmrSocket: ← cmd=22 (голос), kanal=" + kanal + ", client=" + client + ", size=" + data.length);
         } else {
             AppLog.add("PmrSocket: ← cmd=" + command + ", kanal=" + kanal + ", client=" + client + ", size=" + data.length);
@@ -242,10 +244,7 @@ public class PmrSocket {
         if (command == 22 && data.length == 324) {
             if (audioEngine != null) audioEngine.pushToRingBuffer(data);
             if (voiceListener != null) {
-                AppLog.add("PmrSocket: вызываю voiceListener.onVoiceReceived(" + client + ")");
                 voiceListener.onVoiceReceived(client);
-            } else {
-                AppLog.add("PmrSocket: ОШИБКА — voiceListener == null, голос не передан!");
             }
         } else if (command == 110) {
             if (clientNumber != client) {
@@ -293,6 +292,10 @@ public class PmrSocket {
             if (e.id == id) return e.number;
         }
         return -1;
+    }
+
+    public static int getLastVoiceClient() {
+        return lastVoiceClient;
     }
 
     public void requestChanList() {
@@ -364,8 +367,6 @@ public class PmrSocket {
         try {
             if (mainPacket != null) {
                 socket.send(new DatagramPacket(mainPacket, mainPacket.length, serverAddr, portPrd + kanalPrd));
-                // ЛОГ: отправка голоса
-                AppLog.add("PmrSocket: → sendVoice, порт=" + (portPrd + kanalPrd) + ", size=" + mainPacket.length);
             }
         } catch (IOException e) {
             AppLog.add("PmrSocket: ОШИБКА sendVoice — " + e.getMessage());
