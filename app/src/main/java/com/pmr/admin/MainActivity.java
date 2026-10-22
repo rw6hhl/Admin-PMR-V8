@@ -42,6 +42,7 @@ public class MainActivity extends AppCompatActivity {
     private final Handler speakingHandler = new Handler(Looper.getMainLooper());
     private final Runnable resetSpeakingId = () -> {
         tvSpeakingId.setText("");
+        AppLog.add("MainActivity: resetSpeakingId — сброс текста CALL (400 мс)");
     };
 
     private BroadcastReceiver voiceReceiver = new BroadcastReceiver() {
@@ -67,7 +68,7 @@ public class MainActivity extends AppCompatActivity {
                 tvSpeakingId.setTypeface(null, Typeface.BOLD);
                 
                 speakingHandler.removeCallbacks(resetSpeakingId);
-                speakingHandler.postDelayed(resetSpeakingId, 3000);
+                speakingHandler.postDelayed(resetSpeakingId, 400);
             }
         }
     };

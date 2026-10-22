@@ -1,6 +1,7 @@
 package com.pmr.admin;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.util.Log;
 import java.io.IOException;
@@ -18,6 +19,7 @@ public class PmrSocket {
     private Thread receiveThread;
     private Thread pingThread;
     private AudioEngine audioEngine;
+    private Context appContext;
 
     private SharedPreferences prefs;
     public static int Priznak_pmr = 26000;
@@ -56,6 +58,7 @@ public class PmrSocket {
 
     public PmrSocket(Context context, OnVoiceListener listener) {
         this.voiceListener = listener;
+        this.appContext = context.getApplicationContext();
         this.prefs = context.getSharedPreferences("pmr_prefs", Context.MODE_PRIVATE);
         loadSettings();
         try {
@@ -244,6 +247,13 @@ public class PmrSocket {
             if (audioEngine != null) audioEngine.pushToRingBuffer(data);
             if (voiceListener != null) {
                 voiceListener.onVoiceReceived(client);
+            }
+            if (appContext != null) {
+                try {
+                    Intent i = new Intent("PMR_VOICE_RECEIVED");
+                    i.putExtra("clientId", client);
+                    appContext.sendBroadcast(i);
+                } catch (Exception ignored) {}
             }
         } else if (command == 110) {
             if (clientNumber != client) {
