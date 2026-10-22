@@ -11,11 +11,13 @@ import java.util.List;
 public class ChanListActivity extends AppCompatActivity implements PmrSocket.OnChanListListener, PmrSocket.OnVoiceListener {
 
     public static class User {
-        public int id;
+        public int number; // номер на сервере (поле i)
+        public int id;     // признак (поле Id)
         public String call;
         public String ip;
         public boolean isBanned;
-        public User(int id, String call, String ip, boolean isBanned) {
+        public User(int number, int id, String call, String ip, boolean isBanned) {
+            this.number = number;
             this.id = id;
             this.call = call;
             this.ip = ip;
@@ -42,16 +44,18 @@ public class ChanListActivity extends AppCompatActivity implements PmrSocket.OnC
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
         adapter = new ChanAdapter(this, users, (user, position) -> {
-            AppLog.add("ChanListActivity: кнопка БАН/РАЗБАН — id=" + user.id + ", isBanned=" + user.isBanned);
+            AppLog.add("ChanListActivity: кнопка БАН/РАЗБАН — number=" + user.number
+                    + ", id=" + user.id + ", isBanned=" + user.isBanned);
             if (PmrService.getPmrSocket() != null) {
                 if (!user.isBanned) {
-                    PmrService.getPmrSocket().sendBan(user.id);
+                    PmrService.getPmrSocket().sendBan(user.number, user.id);
                 } else {
-                    PmrService.getPmrSocket().sendUnban(user.id);
+                    PmrService.getPmrSocket().sendUnban(user.number, user.id);
                 }
                 
                 user.isBanned = !user.isBanned;
-                Toast.makeText(this, (user.isBanned ? "Отправлен БАН: " : "Отправлен РАЗБАН: ") + user.id, Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, (user.isBanned ? "Отправлен БАН №" : "Отправлен РАЗБАН №")
+                        + user.number + " (ID " + user.id + ")", Toast.LENGTH_SHORT).show();
                 adapter.notifyItemChanged(position);
             } else {
                 AppLog.add("ChanListActivity: pmrSocket == null — сервис не запущен");
@@ -86,7 +90,7 @@ public class ChanListActivity extends AppCompatActivity implements PmrSocket.OnC
             users.clear();
             for (PmrSocket.ChanEntry e : entries) {
                 String name = NameBook.getName(this, e.id);
-                users.add(new User(e.id, name, e.ip, e.ban));
+                users.add(new User(e.number, e.id, name, e.ip, e.ban));
             }
             adapter.notifyDataSetChanged();
             AppLog.add("ChanListActivity: Список обновлён, абонентов: " + users.size());

@@ -75,7 +75,8 @@ public class ChanAdapter extends RecyclerView.Adapter<ChanAdapter.VH> {
         if (name.length() > MAX_NAME_LEN) {
             name = name.substring(0, MAX_NAME_LEN - 1) + "…";
         }
-        h.itemText.setText(String.format("%05d %s", user.id, name));
+        // Отображаем номер на сервере (number) и признак (id)
+        h.itemText.setText(String.format("№%d ID%05d %s", user.number, user.id, name));
         
         if (user.id == activeClient) {
             h.itemText.setTextColor(Color.RED);
