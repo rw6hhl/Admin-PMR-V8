@@ -294,25 +294,42 @@ public class PmrSocket {
         }
     }
 
-    public void sendBan(int targetId) {
+    public void sendBan(final int targetId) {
         if (socket == null || socket.isClosed()) {
             AppLog.add("PmrSocket: sendBan — сокет null/closed, пропуск (id=" + targetId + ")");
             return;
         }
-        byte[] ban = new byte[4];
-        ban[0] = (byte) 222;
-        ban[1] = 0;
-        ban[2] = (byte) (targetId & 0xFF);
-        ban[3] = (byte) ((targetId >> 8) & 0xFF);
-        try {
-            socket.send(new DatagramPacket(ban, 4, serverAddr, portPrd + kanalPrd));
-            AppLog.add("PmrSocket: → cmd=222 (БАН) id=" + targetId + ", порт=" + (portPrd + kanalPrd));
-        } catch (IOException e) {
-            AppLog.add("PmrSocket: ОШИБКА cmd=222 — " + e.getMessage());
-        }
+        
+        new Thread(() -> {
+            // Защита от самобана (из V4.2)
+            if (targetId == Priznak_pmr) {
+                AppLog.add("PmrSocket: БАН запрещён — попытка забанить самого себя (ID=" + targetId + ")");
+                return;
+            }
+
+            byte[] ban = new byte[4];
+            ban[0] = (byte) 222;
+            ban[1] = 0; // В V4.2 здесь передается 13, но в нашем коде используется 0
+            ban[2] = (byte) (targetId & 0xFF);
+            ban[3] = (byte) ((targetId >> 8) & 0xFF);
+            
+            try {
+                socket.send(new DatagramPacket(ban, 4, serverAddr, portPrd + kanalPrd));
+                AppLog.add("PmrSocket: → cmd=222 (БАН/РАЗБАН) id=" + targetId + ", порт=" + (portPrd + kanalPrd));
+                
+                // Двойной запрос списка (из V4.2)
+                requestChanList();
+                Thread.sleep(300);
+                requestChanList();
+                
+            } catch (Exception e) {
+                AppLog.add("PmrSocket: ОШИБКА cmd=222 — " + e.getMessage());
+            }
+        }).start();
     }
 
     public void sendUnban(int targetId) {
+        // Разбан — это тот же toggle (222), что и бан
         sendBan(targetId);
         AppLog.add("PmrSocket: → РАЗБАН id=" + targetId + " (повтор 222)");
     }

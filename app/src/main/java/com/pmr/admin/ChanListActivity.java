@@ -6,9 +6,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class ChanListActivity extends AppCompatActivity implements PmrSocket.OnChanListListener, PmrSocket.OnVoiceListener {
 
@@ -26,7 +24,6 @@ public class ChanListActivity extends AppCompatActivity implements PmrSocket.OnC
     }
 
     private List<User> users = new ArrayList<>();
-    private Map<Integer, Boolean> localBanState = new HashMap<>();
     private ChanAdapter adapter;
 
     @Override
@@ -47,19 +44,17 @@ public class ChanListActivity extends AppCompatActivity implements PmrSocket.OnC
         adapter = new ChanAdapter(this, users, (user, position) -> {
             AppLog.add("ChanListActivity: кнопка БАН/РАЗБАН — id=" + user.id + ", isBanned=" + user.isBanned);
             if (PmrService.getPmrSocket() != null) {
-                new Thread(() -> {
-                    if (!user.isBanned) {
-                        PmrService.getPmrSocket().sendBan(user.id);
-                    } else {
-                        PmrService.getPmrSocket().sendUnban(user.id);
-                    }
-                }).start();
+                if (!user.isBanned) {
+                    PmrService.getPmrSocket().sendBan(user.id);
+                } else {
+                    PmrService.getPmrSocket().sendUnban(user.id);
+                }
                 
                 user.isBanned = !user.isBanned;
-                localBanState.put(user.id, user.isBanned);
-                Toast.makeText(this, (user.isBanned ? "Бан: " : "Разбан: ") + user.id, Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, (user.isBanned ? "Отправлен БАН: " : "Отправлен РАЗБАН: ") + user.id, Toast.LENGTH_SHORT).show();
                 adapter.notifyItemChanged(position);
             } else {
+                AppLog.add("ChanListActivity: pmrSocket == null — сервис не запущен");
                 Toast.makeText(this, "Сервис не запущен", Toast.LENGTH_SHORT).show();
             }
         });
@@ -91,8 +86,7 @@ public class ChanListActivity extends AppCompatActivity implements PmrSocket.OnC
             users.clear();
             for (PmrSocket.ChanEntry e : entries) {
                 String name = NameBook.getName(this, e.id);
-                boolean isBanned = localBanState.containsKey(e.id) ? localBanState.get(e.id) : e.ban;
-                users.add(new User(e.id, name, e.ip, isBanned));
+                users.add(new User(e.id, name, e.ip, e.ban));
             }
             adapter.notifyDataSetChanged();
             AppLog.add("ChanListActivity: Список обновлён, абонентов: " + users.size());
