@@ -11,8 +11,8 @@ import java.util.List;
 public class ChanListActivity extends AppCompatActivity implements PmrSocket.OnChanListListener, PmrSocket.OnVoiceListener {
 
     public static class User {
-        public int number; // номер на сервере (поле i)
-        public int id;     // признак (поле Id)
+        public int number;
+        public int id;
         public String call;
         public String ip;
         public boolean isBanned;
@@ -53,10 +53,8 @@ public class ChanListActivity extends AppCompatActivity implements PmrSocket.OnC
                     PmrService.getPmrSocket().sendUnban(user.number, user.id);
                 }
                 
-                user.isBanned = !user.isBanned;
-                Toast.makeText(this, (user.isBanned ? "Отправлен БАН №" : "Отправлен РАЗБАН №")
-                        + user.number + " (ID " + user.id + ")", Toast.LENGTH_SHORT).show();
-                adapter.notifyItemChanged(position);
+                // НЕ меняем user.isBanned вручную! Ждем ответа от сервера (cmd=234)
+                Toast.makeText(this, "Команда отправлена. Ожидание ответа сервера...", Toast.LENGTH_SHORT).show();
             } else {
                 AppLog.add("ChanListActivity: pmrSocket == null — сервис не запущен");
                 Toast.makeText(this, "Сервис не запущен", Toast.LENGTH_SHORT).show();

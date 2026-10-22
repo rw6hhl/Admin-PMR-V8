@@ -34,7 +34,6 @@ public class ChanAdapter extends RecyclerView.Adapter<ChanAdapter.VH> {
         this.users = users;
         this.listener = listener;
         
-        // Инициализация Runnable внутри конструктора, чтобы users уже был присвоен
         this.resetRunnable = () -> {
             if (this.activeClient != -1) {
                 int old = this.activeClient;
@@ -56,7 +55,7 @@ public class ChanAdapter extends RecyclerView.Adapter<ChanAdapter.VH> {
         }
         resetHandler.removeCallbacks(resetRunnable);
         if (clientId != -1) {
-            resetHandler.postDelayed(resetRunnable, 3000); // сброс через 3 секунды
+            resetHandler.postDelayed(resetRunnable, 3000);
         }
     }
 
@@ -75,8 +74,8 @@ public class ChanAdapter extends RecyclerView.Adapter<ChanAdapter.VH> {
         if (name.length() > MAX_NAME_LEN) {
             name = name.substring(0, MAX_NAME_LEN - 1) + "…";
         }
-        // Отображаем номер на сервере (number) и признак (id)
-        h.itemText.setText(String.format("№%d ID%05d %s", user.number, user.id, name));
+        // Формат: 26439 TX KMV (без № и ID)
+        h.itemText.setText(String.format("%d %s", user.id, name));
         
         if (user.id == activeClient) {
             h.itemText.setTextColor(Color.RED);
@@ -86,6 +85,7 @@ public class ChanAdapter extends RecyclerView.Adapter<ChanAdapter.VH> {
             h.itemText.setTypeface(null, Typeface.NORMAL);
         }
 
+        // Цвет кнопки зависит только от фактического состояния с сервера
         if (user.isBanned) {
             h.itemBtnBan.setText("РАЗБАН");
             h.itemBtnBan.setBackgroundColor(ContextCompat.getColor(ctx, android.R.color.holo_red_dark));
