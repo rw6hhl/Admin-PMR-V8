@@ -35,8 +35,8 @@ public class PmrSocket {
     private OnVoiceListener voiceListener;
 
     public static class ChanEntry {
-        public int number;   // i — номер на сервере (по нему работает cmd=222)
-        public int id;       // Id — признак (ID абонента)
+        public int number;   // i — номер на сервере
+        public int id;       // Id — признак
         public String ip;
         public boolean ban;
         public ChanEntry(int number, int id, String ip, boolean ban) {
@@ -259,17 +259,13 @@ public class PmrSocket {
         for (int i = 0; i < count; i++) {
             int offset = 4 + (i * 13);
             if (offset + 12 >= data.length) break;
-            // Поле i (number) — unsigned short в начале записи
             int number = (data[offset + 0] & 0xFF) | ((data[offset + 1] & 0xFF) << 8);
-            // Поле Id — unsigned short со смещения +4
             int id = (data[offset + 4] & 0xFF) | ((data[offset + 5] & 0xFF) << 8);
-            // IP — unsigned int со смещения +8
             int ip0 = data[offset + 8] & 0xFF;
             int ip1 = data[offset + 9] & 0xFF;
             int ip2 = data[offset + 10] & 0xFF;
             int ip3 = data[offset + 11] & 0xFF;
             String ip = ip0 + "." + ip1 + "." + ip2 + "." + ip3;
-            // ban — unsigned char со смещения +12
             boolean ban = (data[offset + 12] & 0xFF) != 0;
             entries.add(new ChanEntry(number, id, ip, ban));
             AppLog.add("PmrSocket:   запись #" + i + " — number=" + number + ", id=" + id + ", ip=" + ip + ", ban=" + ban);
@@ -282,6 +278,17 @@ public class PmrSocket {
         } else {
             AppLog.add("PmrSocket: chanListListener == null, список сохранён в lastChanList (size=" + entries.size() + ")");
         }
+    }
+
+    /**
+     * Поиск номера (number) по признаку (id) в последнем полученном списке.
+     * Если найдено несколько с одинаковым id, возвращается первый.
+     */
+    public static int getClientNumberById(int id) {
+        for (ChanEntry e : lastChanList) {
+            if (e.id == id) return e.number;
+        }
+        return -1;
     }
 
     public void requestChanList() {
@@ -303,11 +310,6 @@ public class PmrSocket {
         }
     }
 
-    /**
-     * Отправка команды cmd=222 (БАН/РАЗБАН).
-     * @param targetNumber — номер клиента на сервере (поле i, unsigned short)
-     * @param targetId     — признак клиента (поле Id) для логов и защиты от самобана
-     */
     public void sendBan(final int targetNumber, final int targetId) {
         if (socket == null || socket.isClosed()) {
             AppLog.add("PmrSocket: sendBan — сокет null/closed, пропуск (number=" + targetNumber + ")");
@@ -315,7 +317,6 @@ public class PmrSocket {
         }
         
         new Thread(() -> {
-            // Защита от самобана по признаку
             if (targetId == Priznak_pmr) {
                 AppLog.add("PmrSocket: БАН запрещён — попытка забанить самого себя (ID=" + targetId + ")");
                 return;
@@ -323,7 +324,7 @@ public class PmrSocket {
 
             byte[] ban = new byte[4];
             ban[0] = (byte) 222;
-            ban[1] = 13; // сервер ожидает kanal=13 для команды 222 (как в admin.c)
+            ban[1] = 13;
             ban[2] = (byte) (targetNumber & 0xFF);
             ban[3] = (byte) ((targetNumber >> 8) & 0xFF);
             
@@ -333,7 +334,6 @@ public class PmrSocket {
                 AppLog.add("PmrSocket: → cmd=222 (БАН/РАЗБАН) number=" + targetNumber + ", id=" + targetId
                         + ", kanal=13, порт=" + banPort);
                 
-                // Двойной запрос списка (как в V4.2)
                 requestChanList();
                 Thread.sleep(300);
                 requestChanList();
@@ -345,7 +345,6 @@ public class PmrSocket {
     }
 
     public void sendUnban(int targetNumber, int targetId) {
-        // Разбан — это тот же toggle (222), что и бан
         sendBan(targetNumber, targetId);
         AppLog.add("PmrSocket: → РАЗБАН number=" + targetNumber + ", id=" + targetId + " (повтор 222)");
     }

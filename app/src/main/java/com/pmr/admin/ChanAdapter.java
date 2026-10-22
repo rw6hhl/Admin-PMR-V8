@@ -20,7 +20,7 @@ public class ChanAdapter extends RecyclerView.Adapter<ChanAdapter.VH> {
     private final Context ctx;
     private final List<ChanListActivity.User> users;
     private final OnBanClickListener listener;
-    private int activeClient = -1;
+    private int activeNumber = -1; // Используем number для подсветки активного
     
     private final Handler resetHandler = new Handler(Looper.getMainLooper());
     private final Runnable resetRunnable;
@@ -35,11 +35,11 @@ public class ChanAdapter extends RecyclerView.Adapter<ChanAdapter.VH> {
         this.listener = listener;
         
         this.resetRunnable = () -> {
-            if (this.activeClient != -1) {
-                int old = this.activeClient;
-                this.activeClient = -1;
+            if (this.activeNumber != -1) {
+                int old = this.activeNumber;
+                this.activeNumber = -1;
                 for (int i = 0; i < this.users.size(); i++) {
-                    if (this.users.get(i).id == old) {
+                    if (this.users.get(i).number == old) {
                         notifyItemChanged(i);
                         break;
                     }
@@ -48,13 +48,13 @@ public class ChanAdapter extends RecyclerView.Adapter<ChanAdapter.VH> {
         };
     }
 
-    public void setActiveClient(int clientId) {
-        if (this.activeClient != clientId) {
-            this.activeClient = clientId;
+    public void setActiveNumber(int number) {
+        if (this.activeNumber != number) {
+            this.activeNumber = number;
             notifyDataSetChanged();
         }
         resetHandler.removeCallbacks(resetRunnable);
-        if (clientId != -1) {
+        if (number != -1) {
             resetHandler.postDelayed(resetRunnable, 3000);
         }
     }
@@ -74,10 +74,12 @@ public class ChanAdapter extends RecyclerView.Adapter<ChanAdapter.VH> {
         if (name.length() > MAX_NAME_LEN) {
             name = name.substring(0, MAX_NAME_LEN - 1) + "…";
         }
-        // Формат: 26439 TX KMV (без № и ID)
+        
+        // Пункт 3: Формат "26439 TX KMV" (без № и ID)
         h.itemText.setText(String.format("%d %s", user.id, name));
         
-        if (user.id == activeClient) {
+        // Пункт 3: Подсветка активного абонента (сравниваем по number)
+        if (user.number == activeNumber) {
             h.itemText.setTextColor(Color.RED);
             h.itemText.setTypeface(null, Typeface.BOLD);
         } else {
@@ -85,12 +87,11 @@ public class ChanAdapter extends RecyclerView.Adapter<ChanAdapter.VH> {
             h.itemText.setTypeface(null, Typeface.NORMAL);
         }
 
-        // Цвет кнопки зависит только от фактического состояния с сервера
+        // Пункт 2: Текст убран, цвет квадрата зависит от бана
+        h.itemBtnBan.setText("");
         if (user.isBanned) {
-            h.itemBtnBan.setText("РАЗБАН");
             h.itemBtnBan.setBackgroundColor(ContextCompat.getColor(ctx, android.R.color.holo_red_dark));
         } else {
-            h.itemBtnBan.setText("БАН");
             h.itemBtnBan.setBackgroundColor(ContextCompat.getColor(ctx, android.R.color.holo_green_dark));
         }
         h.itemBtnBan.setEnabled(true);

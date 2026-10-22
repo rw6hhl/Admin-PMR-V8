@@ -50,13 +50,20 @@ public class MainActivity extends AppCompatActivity {
             int clientId = intent.getIntExtra("clientId", -1);
             if (clientId != -1) {
                 String name = NameBook.getName(MainActivity.this, clientId);
-                String text = String.format("%05d %s", clientId, name);
+                // Находим номер на сервере по признаку
+                int number = PmrSocket.getClientNumberById(clientId);
+                String text;
+                if (number != -1) {
+                    text = String.format("%d %s", number, name); // Пример: 26439 TX KMV
+                } else {
+                    text = String.format("%d %s", clientId, name); // fallback
+                }
+                
                 AppLog.add("MainActivity: PMR_VOICE_RECEIVED clientId=" + clientId + ", text=" + text);
                 tvSpeakingId.setText(text);
                 tvSpeakingId.setTextColor(Color.RED);
                 tvSpeakingId.setTypeface(null, Typeface.BOLD);
                 
-                // Сброс через 3 секунды
                 speakingHandler.removeCallbacks(resetSpeakingId);
                 speakingHandler.postDelayed(resetSpeakingId, 3000);
             }
