@@ -28,10 +28,10 @@ public class PmrSocket {
     private int kanalSecret = 0;
     private int clientNumber = -1;
     private int pingCount = 0;
-    private static int lastVoiceClient = -1; // последний говоривший (id)
+    private static int lastVoiceNumber = -1; // последний говоривший (номер на сервере, поле i)
 
     public interface OnVoiceListener {
-        void onVoiceReceived(int clientId);
+        void onVoiceReceived(int clientNumber); // передаем номер (поле i)
     }
     private OnVoiceListener voiceListener;
 
@@ -234,9 +234,9 @@ public class PmrSocket {
         if (kanal != kanalPrd && kanalPrd != 0) return;
 
         if (command == 22) {
-            // Сохраняем последнего говорившего
-            lastVoiceClient = client;
-            AppLog.add("PmrSocket: ← cmd=22 (голос), kanal=" + kanal + ", client=" + client + ", size=" + data.length);
+            // client — это номер на сервере (поле i)
+            lastVoiceNumber = client;
+            AppLog.add("PmrSocket: ← cmd=22 (голос), kanal=" + kanal + ", number=" + client + ", size=" + data.length);
         } else {
             AppLog.add("PmrSocket: ← cmd=" + command + ", kanal=" + kanal + ", client=" + client + ", size=" + data.length);
         }
@@ -287,15 +287,18 @@ public class PmrSocket {
         }
     }
 
-    public static int getClientNumberById(int id) {
+    /**
+     * Поиск признака (id) по номеру на сервере (number, поле i).
+     */
+    public static int getClientIdByNumber(int number) {
         for (ChanEntry e : lastChanList) {
-            if (e.id == id) return e.number;
+            if (e.number == number) return e.id;
         }
         return -1;
     }
 
-    public static int getLastVoiceClient() {
-        return lastVoiceClient;
+    public static int getLastVoiceNumber() {
+        return lastVoiceNumber;
     }
 
     public void requestChanList() {

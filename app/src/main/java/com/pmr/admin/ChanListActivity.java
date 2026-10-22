@@ -92,21 +92,19 @@ public class ChanListActivity extends AppCompatActivity implements PmrSocket.OnC
             AppLog.add("ChanListActivity: Список обновлён, абонентов: " + users.size());
             
             // После заполнения списка проверяем, кто говорил последним
-            int lastId = PmrSocket.getLastVoiceClient();
-            if (lastId != -1) {
-                int num = PmrSocket.getClientNumberById(lastId);
-                AppLog.add("ChanListActivity: после заполнения списка подсвечиваем последнего говорившего: lastId=" + lastId + ", number=" + num);
-                adapter.setActiveNumber(num);
+            int lastNumber = PmrSocket.getLastVoiceNumber();
+            if (lastNumber != -1) {
+                AppLog.add("ChanListActivity: после заполнения списка подсвечиваем последнего говорившего: number=" + lastNumber);
+                adapter.setActiveNumber(lastNumber);
             }
         });
     }
 
     @Override
-    public void onVoiceReceived(int clientId) {
+    public void onVoiceReceived(int clientNumber) {
         runOnUiThread(() -> {
             if (adapter != null) {
-                int num = PmrSocket.getClientNumberById(clientId);
-                adapter.setActiveNumber(num);
+                adapter.setActiveNumber(clientNumber);
             }
         });
     }

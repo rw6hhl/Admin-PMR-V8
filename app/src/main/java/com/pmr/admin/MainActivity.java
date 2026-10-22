@@ -47,20 +47,16 @@ public class MainActivity extends AppCompatActivity {
     private BroadcastReceiver voiceReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            int clientId = intent.getIntExtra("clientId", -1);
-            AppLog.add("MainActivity: BroadcastReceiver получил PMR_VOICE_RECEIVED, clientId=" + clientId);
-            if (clientId != -1) {
-                String name = NameBook.getName(MainActivity.this, clientId);
-                int number = PmrSocket.getClientNumberById(clientId);
-                String text;
-                if (number != -1) {
-                    text = String.format("%d %s", number, name);
-                } else {
-                    AppLog.add("MainActivity: ВНИМАНИЕ — getClientNumberById вернул -1 для id=" + clientId);
-                    text = String.format("%d %s", clientId, name);
-                }
+            int clientNumber = intent.getIntExtra("clientId", -1); // здесь clientId — это number
+            AppLog.add("MainActivity: BroadcastReceiver получил PMR_VOICE_RECEIVED, number=" + clientNumber);
+            if (clientNumber != -1) {
+                // Ищем id (признак) по номеру
+                int id = PmrSocket.getClientIdByNumber(clientNumber);
+                String name = (id != -1) ? NameBook.getName(MainActivity.this, id) : "Неизвестный";
                 
-                AppLog.add("MainActivity: вывод в CALL — text=" + text);
+                String text = String.format("%d %s", clientNumber, name); // Пример: 26439 TX KMV
+                
+                AppLog.add("MainActivity: вывод в CALL — number=" + clientNumber + ", id=" + id + ", text=" + text);
                 tvSpeakingId.setText(text);
                 tvSpeakingId.setTextColor(Color.RED);
                 tvSpeakingId.setTypeface(null, Typeface.BOLD);
