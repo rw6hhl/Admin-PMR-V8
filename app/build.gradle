@@ -10,8 +10,8 @@ android {
         applicationId "com.pmr.admin"
         minSdk 26
         targetSdk 34
-        versionCode 969
-        versionName "9.69"
+        versionCode 970
+        versionName "9.70"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }

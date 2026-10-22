@@ -86,7 +86,6 @@ public class ChanListActivity extends AppCompatActivity implements PmrSocket.OnC
             users.clear();
             int skipped = 0;
             for (PmrSocket.ChanEntry e : entries) {
-                // V9.69: админа/наблюдателя (id=11777) в UI не показываем
                 if (PmrSocket.isAdminObserver(e.id)) {
                     skipped++;
                     continue;
@@ -98,7 +97,6 @@ public class ChanListActivity extends AppCompatActivity implements PmrSocket.OnC
             AppLog.add("ChanListActivity: Список обновлён, абонентов: " + users.size()
                     + " (скрыто админ/наблюдатель: " + skipped + ")");
 
-            // После заполнения списка проверяем, кто говорил последним
             int lastNumber = PmrSocket.getLastVoiceNumber();
             if (lastNumber != -1) {
                 AppLog.add("ChanListActivity: после заполнения списка подсвечиваем последнего говорившего: number=" + lastNumber);

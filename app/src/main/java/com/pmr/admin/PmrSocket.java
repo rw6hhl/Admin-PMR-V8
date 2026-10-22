@@ -13,7 +13,7 @@ import java.util.List;
 
 public class PmrSocket {
     private static final String TAG = "PmrSocket";
-    private static final int ADMIN_OBSERVER_ID = 11777; // админ/наблюдатель — не говорит, фильтруется в UI (V9.69)
+    private static final int ADMIN_OBSERVER_ID = 11777; // админ/наблюдатель — не говорит, скрыт в UI (V9.69+)
     private DatagramSocket socket;
     private InetAddress serverAddr;
     private boolean isRunning = false;
@@ -281,7 +281,7 @@ public class PmrSocket {
             int offset = 4 + (i * 13);
             if (offset + 12 >= data.length) break;
             int numberRaw = (data[offset + 0] & 0xFF) | ((data[offset + 1] & 0xFF) << 8);
-            int number = numberRaw - 1; // приводим к 0-based, как в cmd=22
+            int number = numberRaw - 1; // приводим к 0-based
             int id = (data[offset + 4] & 0xFF) | ((data[offset + 5] & 0xFF) << 8);
             int ip0 = data[offset + 8] & 0xFF;
             int ip1 = data[offset + 9] & 0xFF;
@@ -290,8 +290,7 @@ public class PmrSocket {
             String ip = ip0 + "." + ip1 + "." + ip2 + "." + ip3;
             boolean ban = (data[offset + 12] & 0xFF) != 0;
 
-            // V9.69: сохраняем ВСЕ записи (включая 11777), чтобы number→id работал.
-            // В UI (LIST/CALL) 11777 фильтруется отдельно.
+            // V9.69+: сохраняем ВСЕ записи (включая 11777), чтобы number→id работал.
             entries.add(new ChanEntry(number, id, ip, ban));
             AppLog.add("PmrSocket:   запись #" + i + " — numberRaw=" + numberRaw + ", number=" + number
                     + ", id=" + id + (id == ADMIN_OBSERVER_ID ? " (админ/наблюдатель)" : "")
@@ -307,10 +306,17 @@ public class PmrSocket {
         }
     }
 
+    // V9.70: сервер в cmd=22 шлёт number, на единицу больший, чем в cmd=234.
+    // Ищем по number - 1.
     public static int getClientIdByNumber(int number) {
+        int target = number - 1;
         for (ChanEntry e : lastChanList) {
-            if (e.number == number) return e.id;
+            if (e.number == target) {
+                AppLog.add("PmrSocket: getClientIdByNumber(number=" + number + ", target=" + target + ") → id=" + e.id);
+                return e.id;
+            }
         }
+        AppLog.add("PmrSocket: getClientIdByNumber(number=" + number + ", target=" + target + ") → не найдено (-1)");
         return -1;
     }
 
