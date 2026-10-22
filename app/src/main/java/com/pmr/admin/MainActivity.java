@@ -48,25 +48,20 @@ public class MainActivity extends AppCompatActivity {
     private BroadcastReceiver voiceReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            int clientNumber = intent.getIntExtra("clientId", -1); // здесь clientId — это number
+            int clientNumber = intent.getIntExtra("clientId", -1);
             AppLog.add("MainActivity: BroadcastReceiver получил PMR_VOICE_RECEIVED, number=" + clientNumber);
             if (clientNumber != -1) {
-                // Ищем id (признак) по номеру
                 int id = PmrSocket.getClientIdByNumber(clientNumber);
-                String name = (id != -1) ? NameBook.getName(MainActivity.this, id) : "Неизвестный";
-                
-                String text;
-                if (id != -1) {
-                    text = String.format("%d %s", id, name); // Пример: 26439 TX KMV
-                } else {
-                    text = String.format("? %s", name);
+                if (id == -1) {
+                    AppLog.add("MainActivity: CALL пропущен — number=" + clientNumber + " не найден в lastChanList (или админ 11777)");
+                    return;
                 }
-                
+                String name = NameBook.getName(MainActivity.this, id);
+                String text = String.format("%d %s", id, name);
                 AppLog.add("MainActivity: вывод в CALL — number=" + clientNumber + ", id=" + id + ", text=" + text);
                 tvSpeakingId.setText(text);
                 tvSpeakingId.setTextColor(Color.RED);
                 tvSpeakingId.setTypeface(null, Typeface.BOLD);
-                
                 speakingHandler.removeCallbacks(resetSpeakingId);
                 speakingHandler.postDelayed(resetSpeakingId, 400);
             }

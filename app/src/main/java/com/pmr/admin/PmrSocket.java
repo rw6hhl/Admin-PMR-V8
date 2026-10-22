@@ -13,6 +13,7 @@ import java.util.List;
 
 public class PmrSocket {
     private static final String TAG = "PmrSocket";
+    private static final int IGNORED_ADMIN_ID = 11777; // админские записи — игнорируем (V9.68)
     private DatagramSocket socket;
     private InetAddress serverAddr;
     private boolean isRunning = false;
@@ -275,8 +276,6 @@ public class PmrSocket {
         for (int i = 0; i < count; i++) {
             int offset = 4 + (i * 13);
             if (offset + 12 >= data.length) break;
-            // Поле i (number) — unsigned short в начале записи. Сервер в cmd=22 шлет i (с 0),
-            // а в cmd=234, вероятно, i+1 (с 1). Поэтому вычитаем 1.
             int numberRaw = (data[offset + 0] & 0xFF) | ((data[offset + 1] & 0xFF) << 8);
             int number = numberRaw - 1; // приводим к 0-based, как в cmd=22
             int id = (data[offset + 4] & 0xFF) | ((data[offset + 5] & 0xFF) << 8);
@@ -286,6 +285,12 @@ public class PmrSocket {
             int ip3 = data[offset + 11] & 0xFF;
             String ip = ip0 + "." + ip1 + "." + ip2 + "." + ip3;
             boolean ban = (data[offset + 12] & 0xFF) != 0;
+
+            if (id == IGNORED_ADMIN_ID) {
+                AppLog.add("PmrSocket:   запись #" + i + " ПРОПУЩЕНА (id=" + id + " — админ, V9.68)");
+                continue;
+            }
+
             entries.add(new ChanEntry(number, id, ip, ban));
             AppLog.add("PmrSocket:   запись #" + i + " — numberRaw=" + numberRaw + ", number=" + number
                     + ", id=" + id + ", ip=" + ip + ", ban=" + ban);
@@ -345,8 +350,6 @@ public class PmrSocket {
             byte[] ban = new byte[4];
             ban[0] = (byte) 222;
             ban[1] = 13;
-            // В cmd=222 сервер ждет number (поле i) в том виде, в каком он приходит в списке.
-            // Если в списке number 1-based (i+1), а мы храним 0-based, нужно вернуть +1.
             int rawNumber = targetNumber + 1;
             ban[2] = (byte) (rawNumber & 0xFF);
             ban[3] = (byte) ((rawNumber >> 8) & 0xFF);
