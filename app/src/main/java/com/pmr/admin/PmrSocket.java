@@ -39,7 +39,7 @@ public class PmrSocket {
     private OnVoiceListener voiceListener;
 
     public static class ChanEntry {
-        public int number;
+        public int number; // = numberRaw из cmd=234 (1-based), как client из cmd=22
         public int id;
         public String ip;
         public boolean ban;
@@ -281,7 +281,8 @@ public class PmrSocket {
             int offset = 4 + (i * 13);
             if (offset + 12 >= data.length) break;
             int numberRaw = (data[offset + 0] & 0xFF) | ((data[offset + 1] & 0xFF) << 8);
-            int number = numberRaw - 1; // приводим к 0-based
+            // V9.71: как в admin.c — client из cmd=22 совпадает с i (numberRaw) из cmd=234 1:1.
+            int number = numberRaw;
             int id = (data[offset + 4] & 0xFF) | ((data[offset + 5] & 0xFF) << 8);
             int ip0 = data[offset + 8] & 0xFF;
             int ip1 = data[offset + 9] & 0xFF;
@@ -290,7 +291,6 @@ public class PmrSocket {
             String ip = ip0 + "." + ip1 + "." + ip2 + "." + ip3;
             boolean ban = (data[offset + 12] & 0xFF) != 0;
 
-            // V9.69+: сохраняем ВСЕ записи (включая 11777), чтобы number→id работал.
             entries.add(new ChanEntry(number, id, ip, ban));
             AppLog.add("PmrSocket:   запись #" + i + " — numberRaw=" + numberRaw + ", number=" + number
                     + ", id=" + id + (id == ADMIN_OBSERVER_ID ? " (админ/наблюдатель)" : "")
@@ -306,17 +306,15 @@ public class PmrSocket {
         }
     }
 
-    // V9.70: сервер в cmd=22 шлёт number, на единицу больший, чем в cmd=234.
-    // Ищем по number - 1.
+    // V9.71: как в admin.c — client из cmd=22 = i (numberRaw) из cmd=234. Без сдвигов.
     public static int getClientIdByNumber(int number) {
-        int target = number - 1;
         for (ChanEntry e : lastChanList) {
-            if (e.number == target) {
-                AppLog.add("PmrSocket: getClientIdByNumber(number=" + number + ", target=" + target + ") → id=" + e.id);
+            if (e.number == number) {
+                AppLog.add("PmrSocket: getClientIdByNumber(number=" + number + ") → id=" + e.id);
                 return e.id;
             }
         }
-        AppLog.add("PmrSocket: getClientIdByNumber(number=" + number + ", target=" + target + ") → не найдено (-1)");
+        AppLog.add("PmrSocket: getClientIdByNumber(number=" + number + ") → не найдено (-1)");
         return -1;
     }
 
@@ -358,7 +356,7 @@ public class PmrSocket {
             byte[] ban = new byte[4];
             ban[0] = (byte) 222;
             ban[1] = 13;
-            int rawNumber = targetNumber + 1;
+            int rawNumber = targetNumber; // V9.71: number = numberRaw, отправляем как есть
             ban[2] = (byte) (rawNumber & 0xFF);
             ban[3] = (byte) ((rawNumber >> 8) & 0xFF);
             
@@ -366,7 +364,7 @@ public class PmrSocket {
                 int banPort = portPrd + 13;
                 socket.send(new DatagramPacket(ban, 4, serverAddr, banPort));
                 AppLog.add("PmrSocket: → cmd=222 (БАН/РАЗБАН) number=" + targetNumber
-                        + " (rawNumber=" + rawNumber + "), id=" + targetId + ", kanal=13, порт=" + banPort);
+                        + ", id=" + targetId + ", kanal=13, порт=" + banPort);
                 
                 requestChanList();
                 Thread.sleep(300);
