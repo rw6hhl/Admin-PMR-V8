@@ -1,6 +1,7 @@
 package com.pmr.admin;
 
 import android.content.Context;
+import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.os.Handler;
@@ -99,9 +100,11 @@ public class ChanAdapter extends RecyclerView.Adapter<ChanAdapter.VH> {
         h.itemBtnBan.setText("");
         if (user.isBanned) {
             AppLog.add("ChanAdapter: onBindViewHolder — number=" + user.number + " ЗАБАНЕН (Красный квадрат)");
-            h.itemBtnBan.setBackgroundColor(ContextCompat.getColor(ctx, android.R.color.holo_red_dark));
+            h.itemBtnBan.setBackgroundTintList(ColorStateList.valueOf(
+                    ContextCompat.getColor(ctx, android.R.color.holo_red_dark)));
         } else {
-            h.itemBtnBan.setBackgroundColor(ContextCompat.getColor(ctx, android.R.color.holo_green_dark));
+            h.itemBtnBan.setBackgroundTintList(ColorStateList.valueOf(
+                    ContextCompat.getColor(ctx, android.R.color.holo_green_dark)));
         }
         h.itemBtnBan.setEnabled(true);
         h.itemBtnBan.setOnClickListener(v -> {
