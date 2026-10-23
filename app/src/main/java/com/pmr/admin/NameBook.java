@@ -15,29 +15,36 @@ public class NameBook {
     private static final Map<Integer, String> defaultNames = new LinkedHashMap<>();
 
     static {
-        defaultNames.put(0, "     ");
-        defaultNames.put(11111, "145.025 приемник ростовского репитера");
-        defaultNames.put(11100, "145.625 передатчик ростовского репитера");
-        defaultNames.put(20095, "Константиновский р-н Денис");
-        defaultNames.put(11122, "145.625 тон 88.5 Каменск-Шахтинский");
-        defaultNames.put(11121, "145.400 Миллерово");
-        defaultNames.put(11777, "Админ");
-        defaultNames.put(11000, "Шарманка");
-        defaultNames.put(26003, "145.300 Мин. Воды");
-        defaultNames.put(26002, "145.000 Пятигорск Приемник");
-        defaultNames.put(26004, "UC7G");
-        defaultNames.put(11105, "145.550 тон 88.5 Мучкап Тамбовская обл");
-        defaultNames.put(20112, "PMR Миллерово");
-        defaultNames.put(20029, "PMR Ростов-на-Дону");
-        defaultNames.put(26001, "Георгиевск");
-        defaultNames.put(20093, "PMR Пятигорск");
+        // V9.73: нулевой индекс пустой (""), как в admin.c. Загрузка из list.txt перекрывает эти значения.
+        defaultNames.put(0, "");
+        defaultNames.put(33333, "R6LQR");
+        defaultNames.put(14465, "R6OHE");
+        defaultNames.put(20029, "PMR ");
+        defaultNames.put(20093, "PMR ");
+        defaultNames.put(20095, "PMR ");
+        defaultNames.put(20112, "PMR ");
         defaultNames.put(26000, "RW6HHL");
+        defaultNames.put(26001, "R6FFM ");
+        defaultNames.put(26002, "RW6HHL");
+        defaultNames.put(26003, "RW6HHL ");
+        defaultNames.put(26004, "UC7G");
+        defaultNames.put(26015, "R6FOB");
+        defaultNames.put(26016, "UB6HRW");
+        defaultNames.put(26039, "KMV145300 ");
+        defaultNames.put(26144, "Мин-Воды");
+        defaultNames.put(26145, "Мин-Воды");
+        defaultNames.put(26431, "KMV431425 ");
+        defaultNames.put(26439, "KMV439025 ");
+        defaultNames.put(57701, "R6LMT");
+        defaultNames.put(57702, "R6LQR");
+        defaultNames.put(57703, "RW6HHL");
+        defaultNames.put(44444, "KMV");
     }
 
     public static synchronized String getName(Context ctx, int id) {
         Map<Integer, String> map = load(ctx);
         String name = map.get(id);
-        if (name == null || name.trim().isEmpty()) return "Абонент";
+        if (name == null) return ""; // V9.72: нет в справочнике — пустая строка (как в admin.c)
         return name;
     }
 
