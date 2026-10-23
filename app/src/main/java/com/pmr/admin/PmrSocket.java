@@ -220,7 +220,7 @@ public class PmrSocket {
 
                     pingCount++;
                     if (pingCount <= 5 || pingCount % 10 == 0) {
-                        AppLog.add("PmrSocket: ping #" + pingCount + " → порт " + (portPrd + kanalPrd)
+                        AppLog.addVerbose("PmrSocket: ping #" + pingCount + " → порт " + (portPrd + kanalPrd)
                                 + ", secret=" + kanalSecret);
                     }
 
@@ -244,6 +244,10 @@ public class PmrSocket {
         if (command == 22) {
             lastVoiceNumber = client;
             AppLog.add("PmrSocket: ← cmd=22 (голос), kanal=" + kanal + ", number=" + client + ", size=" + data.length);
+        } else if (command == 7) {
+            AppLog.addVerbose("PmrSocket: ← cmd=7, kanal=" + kanal + ", client=" + client + ", size=" + data.length);
+        } else if (command == 110) {
+            AppLog.addVerbose("PmrSocket: ← cmd=110, kanal=" + kanal + ", client=" + client + ", size=" + data.length);
         } else {
             AppLog.add("PmrSocket: ← cmd=" + command + ", kanal=" + kanal + ", client=" + client + ", size=" + data.length);
         }

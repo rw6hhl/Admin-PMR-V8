@@ -111,6 +111,12 @@ public class AppLog {
         }
     }
 
+    // V9.74: пишем только если verbose == true (шумовые строки — ping, cmd=7, cmd=110)
+    public static synchronized void addVerbose(String message) {
+        if (!verbose) return;
+        add(message);
+    }
+
     public static synchronized String getAllLogs() {
         StringBuilder sb = new StringBuilder();
         for (String log : logs) {
