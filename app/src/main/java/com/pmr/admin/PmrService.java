@@ -16,9 +16,11 @@ import androidx.core.app.NotificationCompat;
 public class PmrService extends Service {
     public static final String CHANNEL_ID = "pmr_admin_ch";
     public static final int NOTIF_ID = 1;
+    public static final String ACTION_STOP = "com.pmr.admin.STOP_SERVICE";
 
     public static PmrSocket pmrSocket;
     public static AudioEngine audioEngine;
+    public static volatile boolean isRunning = false;
 
     public static PmrSocket getPmrSocket() {
         return pmrSocket;
@@ -44,6 +46,10 @@ public class PmrService extends Service {
             } else if ("PMR_STOP_RECORDING".equals(action)) {
                 AppLog.add("PmrService: PMR_STOP_RECORDING → stopRecording");
                 if (audioEngine != null) audioEngine.stopRecording();
+            } else if (ACTION_STOP.equals(action)) {
+                AppLog.add("PmrService: ACTION_STOP — остановка сервиса");
+                stopForeground(true);
+                stopSelf();
             }
         }
     };
@@ -51,11 +57,12 @@ public class PmrService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-        AppLog.add("PmrService: onCreate — старт V9.75");
+        AppLog.add("PmrService: onCreate — старт V9.76");
 
         IntentFilter filter = new IntentFilter();
         filter.addAction("PMR_START_RECORDING");
         filter.addAction("PMR_STOP_RECORDING");
+        filter.addAction(ACTION_STOP);
         registerReceiver(controlReceiver, filter);
 
         pmrSocket = new PmrSocket(getApplicationContext(), null);
@@ -66,18 +73,20 @@ public class PmrService extends Service {
 
         createChannel();
         startForeground(NOTIF_ID, buildNotification());
-        AppLog.add("PmrService: служба запущена, audioEngine и pmrSocket созданы");
+        isRunning = true;
+        AppLog.add("PmrService: служба запущена, audioEngine и pmrSocket созданы, isRunning=true");
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        AppLog.add("PmrService: onStartCommand START_STICKY");
-        return START_STICKY;
+        AppLog.add("PmrService: onStartCommand START_NOT_STICKY");
+        return START_NOT_STICKY;
     }
 
     @Override
     public void onDestroy() {
         AppLog.add("PmrService: onDestroy");
+        isRunning = false;
         try { unregisterReceiver(controlReceiver); } catch (Exception ignored) {}
         if (audioEngine != null) {
             try { audioEngine.stopRecording(); } catch (Exception ignored) {}
@@ -86,7 +95,9 @@ public class PmrService extends Service {
         if (pmrSocket != null) pmrSocket.stop();
         pmrSocket = null;
         audioEngine = null;
+        stopForeground(true);
         super.onDestroy();
+        AppLog.add("PmrService: onDestroy — isRunning=false");
     }
 
     @Override
@@ -104,15 +115,22 @@ public class PmrService extends Service {
     }
 
     private Notification buildNotification() {
-        Intent i = new Intent(this, MainActivity.class);
-        PendingIntent pi = PendingIntent.getActivity(
-                this, 0, i, PendingIntent.FLAG_IMMUTABLE);
+        Intent openIntent = new Intent(this, MainActivity.class);
+        PendingIntent piOpen = PendingIntent.getActivity(
+                this, 0, openIntent, PendingIntent.FLAG_IMMUTABLE);
+
+        Intent stopIntent = new Intent(this, PmrService.class);
+        stopIntent.setAction(ACTION_STOP);
+        PendingIntent piStop = PendingIntent.getService(
+                this, 1, stopIntent, PendingIntent.FLAG_IMMUTABLE);
+
         return new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle(getString(R.string.app_name))
                 .setContentText("Работа в фоне...")
                 .setSmallIcon(android.R.drawable.stat_sys_data_bluetooth)
-                .setContentIntent(pi)
+                .setContentIntent(piOpen)
                 .setOngoing(true)
+                .addAction(android.R.drawable.ic_menu_close_clear_cancel, "ВЫКЛ", piStop)
                 .build();
     }
 }

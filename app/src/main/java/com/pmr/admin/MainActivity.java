@@ -8,6 +8,7 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.graphics.PorterDuff;
 import android.graphics.Typeface;
 import android.media.AudioManager;
 import android.media.ToneGenerator;
@@ -31,7 +32,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int REQ_MIC = 101;
     private SharedPreferences prefs;
     private TextView tvChannel, tvIndex, tvSpeakingId, tvVersion;
-    private ImageView imgRed;
+    private ImageView imgRed, btnPower;
     private Button btnMenu, btnUp, btnDown, btnSave1, btnSave2, btnSave3, btnSave4, btnSave5, btnCallOrList, btnPTT, btnSecretMode;
     private boolean isAdminMode = false;
     private PowerManager.WakeLock wakeLock;
@@ -90,9 +91,9 @@ public class MainActivity extends AppCompatActivity {
         }
 
         String savedVersion = prefs.getString("app_version", "0");
-        if (!savedVersion.equals("9.75")) {
+        if (!savedVersion.equals("9.76")) {
             prefs.edit()
-                .putString("app_version", "9.75")
+                .putString("app_version", "9.76")
                 .putString("MyMailIndex", "51953")
                 .putString("Priznak_pmr", "26000")
                 .putInt("PORT_prm", 5253)
@@ -102,7 +103,7 @@ public class MainActivity extends AppCompatActivity {
                 .putBoolean("simplex", true)
                 .putBoolean("is_admin_mode", false)
                 .apply();
-            AppLog.add("MainActivity: Настройки сброшены (V9.75): Priznak=26000, Mail=51953, Ch=4, PORT_prm=5253, PORT_prd=16000");
+            AppLog.add("MainActivity: Настройки сброшены (V9.76): Priznak=26000, Mail=51953, Ch=4, PORT_prm=5253, PORT_prd=16000");
         }
 
         requestMicPermission();
@@ -122,12 +123,10 @@ public class MainActivity extends AppCompatActivity {
         initViews();
         setupListeners();
         updateUI();
+        updatePowerButton();
 
-        new Handler().postDelayed(() -> {
-            AppLog.add("MainActivity: запуск PmrService");
-            Intent serviceIntent = new Intent(this, PmrService.class);
-            startService(serviceIntent);
-        }, 500);
+        // Автостарт сервиса убран (V9.76). Сервис стартует только по кнопке btnPower.
+        AppLog.add("MainActivity: onCreate — сервис НЕ стартует автоматически (V9.76)");
     }
 
     private void beep() {
@@ -164,6 +163,7 @@ public class MainActivity extends AppCompatActivity {
         tvSpeakingId = findViewById(R.id.tvSpeakingId);
         tvVersion = findViewById(R.id.tvVersion);
         imgRed = findViewById(R.id.imageView);
+        btnPower = findViewById(R.id.btnPower);
 
         btnMenu = findViewById(R.id.button4);
         btnUp = findViewById(R.id.button1);
@@ -176,10 +176,23 @@ public class MainActivity extends AppCompatActivity {
         btnSave5 = findViewById(R.id.buttonsave5);
         btnPTT = findViewById(R.id.btnPTT);
         btnSecretMode = findViewById(R.id.btnSecretMode);
-        AppLog.add("MainActivity: initViews — найдены кнопки и TextView");
+        AppLog.add("MainActivity: initViews — найдены кнопки и TextView (btnPower есть)");
     }
 
     private void setupListeners() {
+        btnPower.setOnClickListener(v -> {
+            beep();
+            if (PmrService.isRunning) {
+                AppLog.add("MainActivity: btnPower → ВЫКЛ (stopService)");
+                stopService(new Intent(this, PmrService.class));
+            } else {
+                AppLog.add("MainActivity: btnPower → ВКЛ (startService)");
+                startService(new Intent(this, PmrService.class));
+            }
+            // Обновим вид с небольшой задержкой, чтобы сервис успел создать/убить isRunning
+            new Handler(Looper.getMainLooper()).postDelayed(this::updatePowerButton, 300);
+        });
+
         btnMenu.setOnClickListener(v -> {
             beep();
             AppLog.add("MainActivity: нажата MENU → SettingsActivity");
@@ -272,6 +285,19 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    private void updatePowerButton() {
+        if (btnPower == null) return;
+        if (PmrService.isRunning) {
+            btnPower.setAlpha(1.0f);
+            btnPower.setColorFilter(Color.GREEN, PorterDuff.Mode.SRC_ATOP);
+            AppLog.add("MainActivity: updatePowerButton → ЗЕЛЁНЫЙ (работает)");
+        } else {
+            btnPower.setAlpha(1.0f);
+            btnPower.setColorFilter(Color.RED, PorterDuff.Mode.SRC_ATOP);
+            AppLog.add("MainActivity: updatePowerButton → КРАСНЫЙ (выключено)");
+        }
+    }
+
     private void savePreset(int presetNum) {
         SharedPreferences.Editor editor = prefs.edit();
         editor.putInt("preset_channel_" + presetNum, currentChannel);
@@ -361,8 +387,9 @@ public class MainActivity extends AppCompatActivity {
         currentChannel = prefs.getInt("current_channel", 4);
         AppLog.add("MainActivity: onResume, isAdminMode=" + isAdminMode + ", currentChannel=" + currentChannel);
         updateUI();
+        updatePowerButton();
         registerReceiver(voiceReceiver, new IntentFilter("PMR_VOICE_RECEIVED"));
-        
+
         if (wakeLock != null && !wakeLock.isHeld()) {
             wakeLock.acquire();
         }
