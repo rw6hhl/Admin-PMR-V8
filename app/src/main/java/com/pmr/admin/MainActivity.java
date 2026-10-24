@@ -8,7 +8,6 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
-import android.graphics.PorterDuff;
 import android.graphics.Typeface;
 import android.media.AudioManager;
 import android.media.ToneGenerator;
@@ -17,6 +16,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.PowerManager;
 import android.text.InputType;
+import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
@@ -35,7 +35,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int REQ_MIC = 101;
     private SharedPreferences prefs;
     private TextView tvChannel, tvIndex, tvSpeakingId, tvVersion, tvActiveUsers;
-    private ImageView imgRed, btnPower;
+    private ImageView imgRed, imgGreen, btnPower;
     private Button btnMenu, btnUp, btnDown, btnSave1, btnSave2, btnSave3, btnSave4, btnSave5, btnCallOrList, btnPTT, btnSecretMode;
     private boolean isAdminMode = false;
     private PowerManager.WakeLock wakeLock;
@@ -43,17 +43,13 @@ public class MainActivity extends AppCompatActivity {
     private ToneGenerator toneGen;
     private boolean soundEnabled = true;
 
-    private int secretClickCount = 0;
-    private final Handler secretHandler = new Handler(Looper.getMainLooper());
-    private final Runnable secretReset = () -> {
-        secretClickCount = 0;
-        AppLog.add("MainActivity: secretClickCount сброшен (таймаут)");
-    };
+    private GestureDetector gestureDetector;
 
     private final Handler speakingHandler = new Handler(Looper.getMainLooper());
     private final Runnable resetSpeakingId = () -> {
         tvSpeakingId.setText("");
-        AppLog.add("MainActivity: resetSpeakingId — сброс текста CALL (400 мс)");
+        imgGreen.setVisibility(View.INVISIBLE); // V9.78: гасим зеленый при сбросе
+        AppLog.add("MainActivity: resetSpeakingId — сброс текста CALL и зеленого индикатора (400 мс)");
     };
 
     private BroadcastReceiver voiceReceiver = new BroadcastReceiver() {
@@ -62,7 +58,15 @@ public class MainActivity extends AppCompatActivity {
             int clientNumber = intent.getIntExtra("clientId", -1);
             AppLog.add("MainActivity: BroadcastReceiver получил PMR_VOICE_RECEIVED, number=" + clientNumber);
             if (clientNumber != -1) {
-                int id = PmrSocket.getClientIdByNumber(clientNumber);
+                int id;
+                // V9.78: Если 4-й канал (эхо), всегда показываем свой ID
+                if (currentChannel == 4) {
+                    id = PmrSocket.Priznak_pmr;
+                    AppLog.add("MainActivity: 4-й канал (эхо) — принудительно ставим свой ID=" + id);
+                } else {
+                    id = PmrSocket.getClientIdByNumber(clientNumber);
+                }
+
                 if (id == -1) {
                     AppLog.add("MainActivity: CALL пропущен — number=" + clientNumber + " не найден в lastChanList");
                     return;
@@ -74,9 +78,13 @@ public class MainActivity extends AppCompatActivity {
                 String name = NameBook.getName(MainActivity.this, id);
                 String text = String.format("%d %s", id, name);
                 AppLog.add("MainActivity: вывод в CALL — number=" + clientNumber + ", id=" + id + ", text=" + text);
+                
                 tvSpeakingId.setText(text);
                 tvSpeakingId.setTextColor(Color.RED);
                 tvSpeakingId.setTypeface(null, Typeface.BOLD);
+                
+                imgGreen.setVisibility(View.VISIBLE); // V9.78: зажигаем зеленый при приеме
+                
                 speakingHandler.removeCallbacks(resetSpeakingId);
                 speakingHandler.postDelayed(resetSpeakingId, 400);
             }
@@ -111,9 +119,9 @@ public class MainActivity extends AppCompatActivity {
         }
 
         String savedVersion = prefs.getString("app_version", "0");
-        if (!savedVersion.equals("9.77")) {
+        if (!savedVersion.equals("9.78")) {
             prefs.edit()
-                .putString("app_version", "9.77")
+                .putString("app_version", "9.78")
                 .putString("MyMailIndex", "51953")
                 .putString("Priznak_pmr", "26000")
                 .putInt("PORT_prm", 5253)
@@ -123,7 +131,7 @@ public class MainActivity extends AppCompatActivity {
                 .putBoolean("simplex", true)
                 .putBoolean("is_admin_mode", false)
                 .apply();
-            AppLog.add("MainActivity: Настройки сброшены (V9.77): Priznak=26000, Mail=51953, Ch=4, PORT_prm=5253, PORT_prd=16000");
+            AppLog.add("MainActivity: Настройки сброшены (V9.78): Priznak=26000, Mail=51953, Ch=4, PORT_prm=5253, PORT_prd=16000");
         }
 
         requestMicPermission();
@@ -145,7 +153,7 @@ public class MainActivity extends AppCompatActivity {
         updateUI();
         updatePowerButton();
 
-        AppLog.add("MainActivity: onCreate — сервис НЕ стартует автоматически (V9.77)");
+        AppLog.add("MainActivity: onCreate — сервис НЕ стартует автоматически (V9.78)");
     }
 
     private void beep() {
@@ -182,7 +190,9 @@ public class MainActivity extends AppCompatActivity {
         tvSpeakingId = findViewById(R.id.tvSpeakingId);
         tvVersion = findViewById(R.id.tvVersion);
         tvActiveUsers = findViewById(R.id.textView6);
+        
         imgRed = findViewById(R.id.imageView);
+        imgGreen = findViewById(R.id.imageView2); // V9.78: зеленый индикатор приема
         btnPower = findViewById(R.id.btnPower);
 
         btnMenu = findViewById(R.id.button4);
@@ -200,6 +210,30 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setupListeners() {
+        gestureDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
+            @Override
+            public boolean onDown(@NonNull MotionEvent e) {
+                return true;
+            }
+
+            @Override
+            public boolean onDoubleTap(@NonNull MotionEvent e) {
+                beep();
+                AppLog.add("MainActivity: ДВОЙНОЕ нажатие скрытой кнопки (GestureDetector)");
+                if (prefs.getBoolean("ask_password", true)) {
+                    showPasswordDialog();
+                } else {
+                    toggleAdminMode();
+                }
+                return true;
+            }
+        });
+
+        btnSecretMode.setOnTouchListener((v, event) -> {
+            gestureDetector.onTouchEvent(event);
+            return true;
+        });
+
         btnPower.setOnClickListener(v -> {
             beep();
             if (PmrService.isRunning) {
@@ -233,24 +267,6 @@ public class MainActivity extends AppCompatActivity {
                 }
             } else {
                 Toast.makeText(this, "Вызов (CALL)", Toast.LENGTH_SHORT).show();
-            }
-        });
-
-        btnSecretMode.setOnClickListener(v -> {
-            beep();
-            secretClickCount++;
-            AppLog.add("MainActivity: нажата скрытая кнопка, count=" + secretClickCount);
-            secretHandler.removeCallbacks(secretReset);
-            if (secretClickCount == 2) {
-                secretClickCount = 0;
-                AppLog.add("MainActivity: ДВОЙНОЕ нажатие скрытой кнопки");
-                if (prefs.getBoolean("ask_password", true)) {
-                    showPasswordDialog();
-                } else {
-                    toggleAdminMode();
-                }
-            } else {
-                secretHandler.postDelayed(secretReset, 500); // окно для второго нажатия - 500 мс
             }
         });
 
@@ -347,13 +363,11 @@ public class MainActivity extends AppCompatActivity {
     private void updatePowerButton() {
         if (btnPower == null) return;
         if (PmrService.isRunning) {
-            btnPower.setAlpha(1.0f);
-            btnPower.setColorFilter(Color.GREEN, PorterDuff.Mode.SRC_ATOP);
-            AppLog.add("MainActivity: updatePowerButton → ЗЕЛЁНЫЙ (работает)");
+            btnPower.setImageResource(R.drawable.power_on);
+            AppLog.add("MainActivity: updatePowerButton → ЗЕЛЁНЫЙ КРУЖОК (работает)");
         } else {
-            btnPower.setAlpha(1.0f);
-            btnPower.setColorFilter(Color.RED, PorterDuff.Mode.SRC_ATOP);
-            AppLog.add("MainActivity: updatePowerButton → КРАСНЫЙ (выключено)");
+            btnPower.setImageResource(R.drawable.power_off);
+            AppLog.add("MainActivity: updatePowerButton → КРАСНЫЙ КРУЖОК (выключено)");
         }
     }
 
@@ -446,7 +460,6 @@ public class MainActivity extends AppCompatActivity {
             btnCallOrList.setText("CALL");
         }
         
-        // Скрываем счетчик если канал 4 или 5
         if (tvActiveUsers != null && (currentChannel == 4 || currentChannel == 5)) {
             tvActiveUsers.setText("");
         }
@@ -482,7 +495,6 @@ public class MainActivity extends AppCompatActivity {
         super.onDestroy();
         AppLog.add("MainActivity: onDestroy");
         speakingHandler.removeCallbacks(resetSpeakingId);
-        secretHandler.removeCallbacks(secretReset);
         if (toneGen != null) {
             try { toneGen.release(); } catch (Exception ignored) {}
             toneGen = null;

@@ -270,7 +270,6 @@ public class PmrSocket {
                 clientNumber = client;
                 requestChanList();
             }
-            // V9.77: рассылаем количество активных пользователей
             if (appContext != null) {
                 try {
                     Intent i = new Intent("PMR_USERS_CHANGED");
@@ -293,7 +292,6 @@ public class PmrSocket {
             int offset = 4 + (i * 13);
             if (offset + 12 >= data.length) break;
             int numberRaw = (data[offset + 0] & 0xFF) | ((data[offset + 1] & 0xFF) << 8);
-            // V9.71: как в admin.c — client из cmd=22 совпадает с i (numberRaw) из cmd=234 1:1.
             int number = numberRaw;
             int id = (data[offset + 4] & 0xFF) | ((data[offset + 5] & 0xFF) << 8);
             int ip0 = data[offset + 8] & 0xFF;
@@ -318,7 +316,6 @@ public class PmrSocket {
         }
     }
 
-    // V9.71: как в admin.c — client из cmd=22 = i (numberRaw) из cmd=234. Без сдвигов.
     public static int getClientIdByNumber(int number) {
         for (ChanEntry e : lastChanList) {
             if (e.number == number) {
@@ -368,7 +365,7 @@ public class PmrSocket {
             byte[] ban = new byte[4];
             ban[0] = (byte) 222;
             ban[1] = 13;
-            int rawNumber = targetNumber; // V9.71: number = numberRaw, отправляем как есть
+            int rawNumber = targetNumber;
             ban[2] = (byte) (rawNumber & 0xFF);
             ban[3] = (byte) ((rawNumber >> 8) & 0xFF);
             
