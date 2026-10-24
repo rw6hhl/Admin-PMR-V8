@@ -331,9 +331,18 @@ public class PmrSocket {
         return lastVoiceNumber;
     }
 
+    /**
+     * V9.81: cmd=234 запрашивается ТОЛЬКО на канале 5 (это единственный канал со списком).
+     * На канале 4 (эхо-репитер) и на каналах 0-3, 6-8 список не запрашивается.
+     * Порт 16013 и kanal=13 — по факту теста PowerShell (сервер отвечает только на 16013).
+     */
     public void requestChanList() {
         if (socket == null || socket.isClosed()) {
             AppLog.add("PmrSocket: requestChanList — сокет null/closed, пропуск");
+            return;
+        }
+        if (prefs.getInt("current_channel", 4) != 5) {
+            AppLog.add("PmrSocket: requestChanList — канал не 5, пропуск (cmd=234 только для канала 5)");
             return;
         }
         try {
@@ -344,7 +353,7 @@ public class PmrSocket {
             cmd[3] = 0;
             int listPort = portPrd + 13;
             socket.send(new DatagramPacket(cmd, 4, serverAddr, listPort));
-            AppLog.add("PmrSocket: → cmd=234 отправлен, порт=" + listPort + ", kanal=13");
+            AppLog.add("PmrSocket: → cmd=234 отправлен, порт=" + listPort + ", kanal=13 (канал 5)");
         } catch (IOException e) {
             AppLog.add("PmrSocket: ОШИБКА cmd=234 — " + e.getMessage());
         }
@@ -363,10 +372,10 @@ public class PmrSocket {
         new Thread(() -> {
             try {
                 byte[] callPacket = new byte[24];
-                callPacket[0] = (byte) 20; // command = 20 (CALL)
-                callPacket[1] = 0;         // kanal (заполнит сервер)
-                callPacket[2] = (byte) (Priznak_pmr & 0xFF);        // client_lo
-                callPacket[3] = (byte) ((Priznak_pmr >> 8) & 0xFF); // client_hi
+                callPacket[0] = (byte) 20;
+                callPacket[1] = 0;
+                callPacket[2] = (byte) (Priznak_pmr & 0xFF);
+                callPacket[3] = (byte) ((Priznak_pmr >> 8) & 0xFF);
                 
                 byte[] bellBytes = "BELL".getBytes();
                 System.arraycopy(bellBytes, 0, callPacket, 4, bellBytes.length);
@@ -380,9 +389,18 @@ public class PmrSocket {
         }).start();
     }
 
+    /**
+     * V9.81: cmd=222 (БАН/РАЗБАН) — только на канале 5.
+     * Канал 4 (эхо) и остальные каналы бан не отправляют.
+     * Порт 16013, kanal=13.
+     */
     public void sendBan(final int targetNumber, final int targetId) {
         if (socket == null || socket.isClosed()) {
             AppLog.add("PmrSocket: sendBan — сокет null/closed, пропуск (number=" + targetNumber + ")");
+            return;
+        }
+        if (prefs.getInt("current_channel", 4) != 5) {
+            AppLog.add("PmrSocket: sendBan — канал не 5, пропуск (cmd=222 только для канала 5)");
             return;
         }
         
@@ -403,7 +421,7 @@ public class PmrSocket {
                 int banPort = portPrd + 13;
                 socket.send(new DatagramPacket(ban, 4, serverAddr, banPort));
                 AppLog.add("PmrSocket: → cmd=222 (БАН/РАЗБАН) number=" + targetNumber
-                        + ", id=" + targetId + ", kanal=13, порт=" + banPort);
+                        + ", id=" + targetId + ", kanal=13, порт=" + banPort + " (канал 5)");
                 
                 requestChanList();
                 Thread.sleep(300);
