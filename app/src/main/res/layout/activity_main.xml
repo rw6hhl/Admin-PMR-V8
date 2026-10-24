@@ -13,20 +13,18 @@
         android:scaleType="fitXY"
         app:srcCompat="@drawable/wktpaint1ffwide" />
 
-    <!-- Версия в правом верхнем углу -->
     <TextView
         android:id="@+id/tvVersion"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
         android:layout_marginEnd="16dp"
-        android:text="v8.3"
+        android:text="v9.77"
         android:textColor="@color/colorButton"
         android:textSize="14sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <!-- Канал -->
     <TextView
         android:id="@+id/textView"
         android:layout_width="wrap_content"
@@ -53,45 +51,30 @@
         app:layout_constraintTop_toBottomOf="@+id/textView" />
 
     <TextView
-        android:id="@+id/textView5"
+        android:id="@+id/tvSpeakingId"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
-        android:text="duplex"
+        android:text=""
         android:textColor="#000000"
+        android:textSize="16sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textView4" />
 
-    <!-- Активный абонент -->
     <TextView
-        android:id="@+id/textView8"
-        android:layout_width="wrap_content"
+        android:id="@+id/textView6"
+        android:layout_width="95dp"
         android:layout_height="wrap_content"
-        android:text="No receive"
-        android:textColor="#000000"
-        android:textSize="16sp"
-        app:layout_constraintBottom_toBottomOf="@+id/imageView6"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.3"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="@+id/imageView6"
-        app:layout_constraintVertical_bias="0.45" />
-
-    <!-- Priznak_pmr говорящего -->
-    <TextView
-        android:id="@+id/tvSpeakingId"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginLeft="16dp"
-        android:layout_marginBottom="16dp"
         android:text=""
         android:textColor="#000000"
         android:textSize="18sp"
-        app:layout_constraintBottom_toBottomOf="@+id/imageView6"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.23"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="@+id/imageView6"
-        app:layout_constraintVertical_bias="0.9" />
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.45" />
 
     <ImageView
         android:id="@+id/imageView"
@@ -107,19 +90,21 @@
         app:layout_constraintVertical_bias="0.3"
         app:srcCompat="@drawable/r1" />
 
+    <!-- === Кнопка ВКЛ/ВЫКЛ (радиатор антенны, красный обведён на скриншоте) === -->
     <ImageView
-        android:id="@+id/imageView2"
-        android:layout_width="20dp"
-        android:layout_height="20dp"
-        android:layout_marginRight="10dp"
-        android:visibility="invisible"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/imageView"
+        android:id="@+id/btnPower"
+        android:layout_width="60dp"
+        android:layout_height="90dp"
+        android:layout_marginTop="70dp"
+        android:layout_marginEnd="35dp"
+        android:alpha="1.0"
+        android:clickable="true"
+        android:focusable="true"
+        android:scaleType="fitCenter"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.3"
-        app:srcCompat="@drawable/r2" />
+        app:srcCompat="@drawable/wktpaint1ffwide" />
 
-    <!-- Кнопки -->
     <Button
         android:id="@+id/button"
         android:layout_width="70dp"
@@ -234,7 +219,6 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/button2" />
 
-    <!-- Кнопка PTT (нажимаем на решетку динамика) -->
     <Button
         android:id="@+id/btnPTT"
         android:layout_width="0dp"
@@ -247,7 +231,6 @@
         app:layout_constraintWidth_percent="0.6"
         app:layout_constraintHeight_percent="0.25" />
 
-    <!-- Скрытая кнопка для входа в режим Админа -->
     <Button
         android:id="@+id/btnSecretMode"
         android:layout_width="50dp"

@@ -23,12 +23,30 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".SettingsActivity" android:screenOrientation="portrait" />
-        <activity android:name=".PasswordActivity" android:screenOrientation="portrait" />
-        <activity android:name=".ChanListActivity" android:screenOrientation="portrait" />
-        <activity android:name=".LogActivity" android:screenOrientation="portrait" />
+        <activity android:name=".SettingsActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+        <activity android:name=".PasswordActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+        <activity android:name=".ChanListActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+        <activity android:name=".LogActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
 
         <service android:name=".PmrService" android:foregroundServiceType="microphone" />
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="com.pmr.admin.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
 
     </application>
 

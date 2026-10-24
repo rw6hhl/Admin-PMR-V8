@@ -26,6 +26,7 @@
             android:orientation="vertical"
             android:visibility="gone">
 
+            <!-- MyMailIndex -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -49,6 +50,7 @@
                     android:textSize="18sp" />
             </LinearLayout>
 
+            <!-- Priznak_pmr -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -73,6 +75,7 @@
                     android:textSize="18sp" />
             </LinearLayout>
 
+            <!-- PORT_prm -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -96,6 +99,7 @@
                     android:textSize="18sp" />
             </LinearLayout>
 
+            <!-- PORT_prd -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -119,11 +123,12 @@
                     android:textSize="18sp" />
             </LinearLayout>
 
+            <!-- ip_server -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center_vertical"
-                android:layout_marginBottom="24dp"
+                android:layout_marginBottom="16dp"
                 android:orientation="horizontal">
                 <TextView
                     android:layout_width="0dp"
@@ -141,7 +146,109 @@
                     android:textColor="@color/colortextabout"
                     android:textSize="18sp" />
             </LinearLayout>
+
+            <!-- === Запрашивать пароль === -->
+            <CheckBox
+                android:id="@+id/cbAskPassword"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Запрашивать пароль при входе в админку"
+                android:textColor="@color/colortextabout"
+                android:checked="true"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="16dp" />
+
+            <!-- === Усиление микрофона === -->
+            <CheckBox
+                android:id="@+id/cbUsilMic"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Усилитель микрофона (onUsilMic)"
+                android:textColor="@color/colortextabout"
+                android:layout_marginTop="8dp" />
+                
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="16dp"
+                android:orientation="horizontal">
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="MicUsildouble ="
+                    android:textColor="@color/colortextabout"
+                    android:textSize="18sp" />
+                <EditText
+                    android:id="@+id/editUsilMic"
+                    android:layout_width="120dp"
+                    android:layout_height="wrap_content"
+                    android:backgroundTint="@color/colortextabout"
+                    android:inputType="numberDecimal"
+                    android:textColor="@color/colortextabout"
+                    android:textSize="18sp" />
+            </LinearLayout>
+
+            <CheckBox
+                android:id="@+id/cbAgc"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="АРУ (Динамическое усиление)"
+                android:textColor="@color/colortextabout"
+                android:layout_marginBottom="16dp" />
+
+            <!-- === Усиление выхода === -->
+            <CheckBox
+                android:id="@+id/cbUsilDin"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Усилитель выхода (onUsilDin)"
+                android:textColor="@color/colortextabout"
+                android:layout_marginTop="8dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="24dp"
+                android:orientation="horizontal">
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="DinUsildouble ="
+                    android:textColor="@color/colortextabout"
+                    android:textSize="18sp" />
+                <EditText
+                    android:id="@+id/editUsilDin"
+                    android:layout_width="120dp"
+                    android:layout_height="wrap_content"
+                    android:backgroundTint="@color/colortextabout"
+                    android:inputType="numberDecimal"
+                    android:textColor="@color/colortextabout"
+                    android:textSize="18sp" />
+            </LinearLayout>
+
         </LinearLayout>
+
+        <CheckBox
+            android:id="@+id/cbVerboseLog"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Вести подробный лог"
+            android:textColor="@color/colortextabout"
+            android:checked="true"
+            android:layout_marginBottom="8dp" />
+
+        <CheckBox
+            android:id="@+id/cbSoundEnabled"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Звук кнопок (тон 1500 Гц)"
+            android:textColor="@color/colortextabout"
+            android:checked="true"
+            android:layout_marginBottom="16dp" />
 
         <Button
             android:id="@+id/btnCodecDialog"
@@ -161,6 +268,15 @@
             android:text="Список"
             android:textColor="@color/colorButton"
             android:visibility="gone" />
+
+        <Button
+            android:id="@+id/btnLoadList"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:background="@drawable/roundshapebtn"
+            android:text="ЗАГРУЗИТЬ list.txt"
+            android:textColor="@color/colorButton" />
 
         <Button
             android:id="@+id/btnLogs"
