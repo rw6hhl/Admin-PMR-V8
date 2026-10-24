@@ -181,6 +181,10 @@ public class PmrSocket {
         return kanalSecret;
     }
 
+    public int getCurrentKanalPrd() {
+        return kanalPrd;
+    }
+
     public void setAudioEngine(AudioEngine audioEngine) {
         this.audioEngine = audioEngine;
     }
@@ -331,6 +335,11 @@ public class PmrSocket {
         return lastVoiceNumber;
     }
 
+    /**
+     * V9.80: запрос списка теперь идёт на порт текущего канала (portPrd + kanalPrd)
+     * с полем kanal = kanalPrd. Это устраняет рассинхрон из лога V9.79:
+     * kanal=14, а cmd=234 уходил на порт 16013.
+     */
     public void requestChanList() {
         if (socket == null || socket.isClosed()) {
             AppLog.add("PmrSocket: requestChanList — сокет null/closed, пропуск");
@@ -339,12 +348,12 @@ public class PmrSocket {
         try {
             byte[] cmd = new byte[4];
             cmd[0] = (byte) 234;
-            cmd[1] = 13;
+            cmd[1] = (byte) (kanalPrd & 0xFF);
             cmd[2] = 0;
             cmd[3] = 0;
-            int listPort = portPrd + 13;
+            int listPort = portPrd + kanalPrd;
             socket.send(new DatagramPacket(cmd, 4, serverAddr, listPort));
-            AppLog.add("PmrSocket: → cmd=234 отправлен, порт=" + listPort + ", kanal=13");
+            AppLog.add("PmrSocket: → cmd=234 отправлен, порт=" + listPort + ", kanal=" + kanalPrd);
         } catch (IOException e) {
             AppLog.add("PmrSocket: ОШИБКА cmd=234 — " + e.getMessage());
         }
@@ -359,18 +368,18 @@ public class PmrSocket {
             AppLog.add("PmrSocket: sendCall — репитерный канал (0), вызов не отправляется");
             return;
         }
-        
+
         new Thread(() -> {
             try {
                 byte[] callPacket = new byte[24];
-                callPacket[0] = (byte) 20; // command = 20 (CALL)
-                callPacket[1] = 0;         // kanal (заполнит сервер)
-                callPacket[2] = (byte) (Priznak_pmr & 0xFF);        // client_lo
-                callPacket[3] = (byte) ((Priznak_pmr >> 8) & 0xFF); // client_hi
-                
+                callPacket[0] = (byte) 20;
+                callPacket[1] = 0;
+                callPacket[2] = (byte) (Priznak_pmr & 0xFF);
+                callPacket[3] = (byte) ((Priznak_pmr >> 8) & 0xFF);
+
                 byte[] bellBytes = "BELL".getBytes();
                 System.arraycopy(bellBytes, 0, callPacket, 4, bellBytes.length);
-                
+
                 int callPort = portPrd + kanalPrd;
                 socket.send(new DatagramPacket(callPacket, 24, serverAddr, callPort));
                 AppLog.add("PmrSocket: → cmd=20 (CALL) отправлен, порт=" + callPort + ", kanal=" + kanalPrd);
@@ -380,12 +389,15 @@ public class PmrSocket {
         }).start();
     }
 
+    /**
+     * V9.80: БАН/РАЗБАН идёт на порт текущего канала и с полем kanal = kanalPrd.
+     */
     public void sendBan(final int targetNumber, final int targetId) {
         if (socket == null || socket.isClosed()) {
             AppLog.add("PmrSocket: sendBan — сокет null/closed, пропуск (number=" + targetNumber + ")");
             return;
         }
-        
+
         new Thread(() -> {
             if (targetId == Priznak_pmr) {
                 AppLog.add("PmrSocket: БАН запрещён — попытка забанить самого себя (ID=" + targetId + ")");
@@ -394,21 +406,21 @@ public class PmrSocket {
 
             byte[] ban = new byte[4];
             ban[0] = (byte) 222;
-            ban[1] = 13;
+            ban[1] = (byte) (kanalPrd & 0xFF);
             int rawNumber = targetNumber;
             ban[2] = (byte) (rawNumber & 0xFF);
             ban[3] = (byte) ((rawNumber >> 8) & 0xFF);
-            
+
             try {
-                int banPort = portPrd + 13;
+                int banPort = portPrd + kanalPrd;
                 socket.send(new DatagramPacket(ban, 4, serverAddr, banPort));
                 AppLog.add("PmrSocket: → cmd=222 (БАН/РАЗБАН) number=" + targetNumber
-                        + ", id=" + targetId + ", kanal=13, порт=" + banPort);
-                
+                        + ", id=" + targetId + ", kanal=" + kanalPrd + ", порт=" + banPort);
+
                 requestChanList();
                 Thread.sleep(300);
                 requestChanList();
-                
+
             } catch (Exception e) {
                 AppLog.add("PmrSocket: ОШИБКА cmd=222 — " + e.getMessage());
             }
