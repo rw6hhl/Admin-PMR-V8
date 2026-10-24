@@ -77,13 +77,13 @@ public class MainActivity extends AppCompatActivity {
                 String name = NameBook.getName(MainActivity.this, id);
                 String text = String.format("%d %s", id, name);
                 AppLog.add("MainActivity: вывод в CALL — number=" + clientNumber + ", id=" + id + ", text=" + text);
-
+                
                 tvSpeakingId.setText(text);
                 tvSpeakingId.setTextColor(Color.RED);
                 tvSpeakingId.setTypeface(null, Typeface.BOLD);
-
+                
                 imgGreen.setVisibility(View.VISIBLE);
-
+                
                 speakingHandler.removeCallbacks(resetSpeakingId);
                 speakingHandler.postDelayed(resetSpeakingId, 400);
             }
@@ -118,9 +118,9 @@ public class MainActivity extends AppCompatActivity {
         }
 
         String savedVersion = prefs.getString("app_version", "0");
-        if (!savedVersion.equals("9.80")) {
+        if (!savedVersion.equals("9.79")) {
             prefs.edit()
-                .putString("app_version", "9.80")
+                .putString("app_version", "9.79")
                 .putString("MyMailIndex", "51953")
                 .putString("Priznak_pmr", "26000")
                 .putInt("PORT_prm", 5253)
@@ -130,7 +130,7 @@ public class MainActivity extends AppCompatActivity {
                 .putBoolean("simplex", true)
                 .putBoolean("is_admin_mode", false)
                 .apply();
-            AppLog.add("MainActivity: Настройки сброшены (V9.80): Priznak=26000, Mail=51953, Ch=4, PORT_prm=5253, PORT_prd=16000");
+            AppLog.add("MainActivity: Настройки сброшены (V9.79): Priznak=26000, Mail=51953, Ch=4, PORT_prm=5253, PORT_prd=16000");
         }
 
         requestMicPermission();
@@ -152,7 +152,7 @@ public class MainActivity extends AppCompatActivity {
         updateUI();
         updatePowerButton();
 
-        AppLog.add("MainActivity: onCreate — сервис НЕ стартует автоматически (V9.80)");
+        AppLog.add("MainActivity: onCreate — сервис НЕ стартует автоматически (V9.79)");
     }
 
     private void beep() {
@@ -160,19 +160,6 @@ public class MainActivity extends AppCompatActivity {
         try {
             toneGen.startTone(ToneGenerator.TONE_PROP_BEEP, 100);
         } catch (Exception ignored) {}
-    }
-
-    /**
-     * V9.80: локальный звонок при отправке CALL — пользователь должен услышать вызов.
-     */
-    private void playCallAlert() {
-        if (toneGen == null) return;
-        try {
-            toneGen.startTone(ToneGenerator.TONE_CDMA_ALERT_CALL_GUARD, 1000);
-            AppLog.add("MainActivity: playCallAlert — тон звонка 1000 мс");
-        } catch (Exception e) {
-            AppLog.add("MainActivity: playCallAlert ошибка — " + e.getMessage());
-        }
     }
 
     private void requestMicPermission() {
@@ -202,7 +189,7 @@ public class MainActivity extends AppCompatActivity {
         tvSpeakingId = findViewById(R.id.tvSpeakingId);
         tvVersion = findViewById(R.id.tvVersion);
         tvActiveUsers = findViewById(R.id.textView6);
-
+        
         imgRed = findViewById(R.id.imageView);
         imgGreen = findViewById(R.id.imageView2);
         btnPower = findViewById(R.id.btnPower);
@@ -232,16 +219,10 @@ public class MainActivity extends AppCompatActivity {
             public boolean onDoubleTap(@NonNull MotionEvent e) {
                 beep();
                 AppLog.add("MainActivity: ДВОЙНОЕ нажатие скрытой кнопки (GestureDetector)");
-                // V9.80: пароль только на ВХОД в админку. Выход — сразу без пароля.
-                if (isAdminMode) {
-                    AppLog.add("MainActivity: выход из админки без пароля");
-                    toggleAdminMode();
+                if (prefs.getBoolean("ask_password", true)) {
+                    showPasswordDialog();
                 } else {
-                    if (prefs.getBoolean("ask_password", true)) {
-                        showPasswordDialog();
-                    } else {
-                        toggleAdminMode();
-                    }
+                    toggleAdminMode();
                 }
                 return true;
             }
@@ -274,9 +255,23 @@ public class MainActivity extends AppCompatActivity {
             beep();
             AppLog.add("MainActivity: нажата CALL/LIST, isAdminMode=" + isAdminMode);
             if (isAdminMode) {
-                handleAdminList();
+                try {
+                    AppLog.add("MainActivity: открываю ChanListActivity");
+                    startActivity(new Intent(this, ChanListActivity.class));
+                    AppLog.add("MainActivity: startActivity(ChanListActivity) — OK");
+                } catch (Exception e) {
+                    AppLog.add("MainActivity: ОШИБКА startActivity(ChanListActivity) — "
+                            + e.getClass().getSimpleName() + ": " + e.getMessage());
+                    Toast.makeText(this, "Ошибка: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                }
             } else {
-                handleClientCall();
+                // V9.79: Отправка вызова
+                if (PmrService.isRunning && PmrService.pmrSocket != null) {
+                    PmrService.pmrSocket.sendCall();
+                    Toast.makeText(this, "Вызов отправлен", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(this, "Сервис не запущен", Toast.LENGTH_SHORT).show();
+                }
             }
         });
 
@@ -339,59 +334,11 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    /**
-     * V9.80: LIST в админке.
-     * - канал 4 и канал 5 → открываем ChanListActivity.
-     * - каналы 0-3, 6-8 → только Toast «В канале: N».
-     */
-    private void handleAdminList() {
-        boolean serviceRunning = PmrService.isRunning && PmrService.pmrSocket != null;
-
-        if (currentChannel == 4 || currentChannel == 5) {
-            if (!serviceRunning) {
-                AppLog.add("MainActivity: LIST — сервис не запущен");
-                Toast.makeText(this, "Сервис не запущен", Toast.LENGTH_SHORT).show();
-                return;
-            }
-            try {
-                AppLog.add("MainActivity: открываю ChanListActivity (канал " + currentChannel + ")");
-                startActivity(new Intent(this, ChanListActivity.class));
-                AppLog.add("MainActivity: startActivity(ChanListActivity) — OK");
-            } catch (Exception e) {
-                AppLog.add("MainActivity: ОШИБКА startActivity(ChanListActivity) — "
-                        + e.getClass().getSimpleName() + ": " + e.getMessage());
-                Toast.makeText(this, "Ошибка: " + e.getMessage(), Toast.LENGTH_LONG).show();
-            }
-        } else {
-            if (!serviceRunning) {
-                AppLog.add("MainActivity: LIST — сервис не запущен, канал " + currentChannel);
-                Toast.makeText(this, "Сервис не запущен", Toast.LENGTH_SHORT).show();
-                return;
-            }
-            int count = PmrService.pmrSocket.getClientNumber();
-            AppLog.add("MainActivity: LIST — канал " + currentChannel + ", только счётчик, count=" + count);
-            Toast.makeText(this, "В канале: " + count, Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    /**
-     * V9.80: CALL в клиентском режиме — отправка cmd=20 + локальный тон звонка.
-     */
-    private void handleClientCall() {
-        if (PmrService.isRunning && PmrService.pmrSocket != null) {
-            PmrService.pmrSocket.sendCall();
-            playCallAlert();
-            Toast.makeText(this, "Вызов отправлен", Toast.LENGTH_SHORT).show();
-        } else {
-            Toast.makeText(this, "Сервис не запущен", Toast.LENGTH_SHORT).show();
-        }
-    }
-
     private void showPasswordDialog() {
         EditText input = new EditText(this);
         input.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_VARIATION_PASSWORD);
         input.setHint("Пароль");
-
+        
         new AlertDialog.Builder(this)
                 .setTitle("Вход в режим Админа")
                 .setMessage("Введите пароль:")
@@ -517,7 +464,7 @@ public class MainActivity extends AppCompatActivity {
             tvChannel.setTextColor(getResources().getColor(android.R.color.black));
             btnCallOrList.setText("CALL");
         }
-
+        
         if (tvActiveUsers != null && (currentChannel == 4 || currentChannel == 5)) {
             tvActiveUsers.setText("");
         }

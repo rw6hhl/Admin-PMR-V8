@@ -75,6 +75,7 @@ public class SettingsActivity extends AppCompatActivity {
         cbSoundEnabled = findViewById(R.id.cbSoundEnabled);
         cbAskPassword = findViewById(R.id.cbAskPassword);
 
+        // Усиление
         cbUsilMic = findViewById(R.id.cbUsilMic);
         editUsilMic = findViewById(R.id.editUsilMic);
         cbAgc = findViewById(R.id.cbAgc);
@@ -87,14 +88,16 @@ public class SettingsActivity extends AppCompatActivity {
         editPortPrd.setText(String.valueOf(prefs.getInt("PORT_prd", 16000)));
         editIp.setText(prefs.getString("ip_server", "185.221.154.39"));
 
+        // Загрузка усиления
         cbUsilMic.setChecked(prefs.getBoolean("onUsilMic", false));
         editUsilMic.setText(String.valueOf(prefs.getFloat("MicUsildouble", 2.0f)));
-
+        
         cbAgc.setChecked(prefs.getBoolean("onAgc", false));
-
+        
         cbUsilDin.setChecked(prefs.getBoolean("onUsilDin", false));
         editUsilDin.setText(String.valueOf(prefs.getFloat("DinUsildouble", 0.4f)));
 
+        // Загрузка "Запрашивать пароль"
         if (cbAskPassword != null) {
             cbAskPassword.setChecked(prefs.getBoolean("ask_password", true));
             cbAskPassword.setOnCheckedChangeListener((b, checked) -> {
@@ -120,6 +123,7 @@ public class SettingsActivity extends AppCompatActivity {
             });
         }
 
+        // V9.79: Показываем скрытые элементы только в режиме админа
         boolean isAdmin = prefs.getBoolean("is_admin_mode", false);
         if (isAdmin) {
             btnChanList.setVisibility(View.VISIBLE);
@@ -180,6 +184,7 @@ public class SettingsActivity extends AppCompatActivity {
         editor.putInt("PORT_prd", Integer.parseInt(editPortPrd.getText().toString()));
         editor.putString("ip_server", editIp.getText().toString());
 
+        // Сохраняем усиление
         try {
             float micVal = Float.parseFloat(editUsilMic.getText().toString());
             editor.putFloat("MicUsildouble", micVal);
@@ -207,7 +212,7 @@ public class SettingsActivity extends AppCompatActivity {
             }
             AppLog.add("SettingsActivity: настройки применены в работе (recreateSocket + applyGain)");
         }
-
+        
         finish();
     }
 }
