@@ -13,7 +13,7 @@ import java.util.List;
 
 public class PmrSocket {
     private static final String TAG = "PmrSocket";
-    private static final int ADMIN_OBSERVER_ID = 11777; // админ/наблюдатель — не говорит, скрыт в UI (V9.69+)
+    private static final int ADMIN_OBSERVER_ID = 11777;
     private DatagramSocket socket;
     private InetAddress serverAddr;
     private boolean isRunning = false;
@@ -39,7 +39,7 @@ public class PmrSocket {
     private OnVoiceListener voiceListener;
 
     public static class ChanEntry {
-        public int number; // = numberRaw из cmd=234 (1-based), как client из cmd=22
+        public int number;
         public int id;
         public String ip;
         public boolean ban;
@@ -348,6 +348,36 @@ public class PmrSocket {
         } catch (IOException e) {
             AppLog.add("PmrSocket: ОШИБКА cmd=234 — " + e.getMessage());
         }
+    }
+
+    public void sendCall() {
+        if (socket == null || socket.isClosed()) {
+            AppLog.add("PmrSocket: sendCall — сокет null/closed, пропуск");
+            return;
+        }
+        if (kanalPrd == 0) {
+            AppLog.add("PmrSocket: sendCall — репитерный канал (0), вызов не отправляется");
+            return;
+        }
+        
+        new Thread(() -> {
+            try {
+                byte[] callPacket = new byte[24];
+                callPacket[0] = (byte) 20; // command = 20 (CALL)
+                callPacket[1] = 0;         // kanal (заполнит сервер)
+                callPacket[2] = (byte) (Priznak_pmr & 0xFF);        // client_lo
+                callPacket[3] = (byte) ((Priznak_pmr >> 8) & 0xFF); // client_hi
+                
+                byte[] bellBytes = "BELL".getBytes();
+                System.arraycopy(bellBytes, 0, callPacket, 4, bellBytes.length);
+                
+                int callPort = portPrd + kanalPrd;
+                socket.send(new DatagramPacket(callPacket, 24, serverAddr, callPort));
+                AppLog.add("PmrSocket: → cmd=20 (CALL) отправлен, порт=" + callPort + ", kanal=" + kanalPrd);
+            } catch (Exception e) {
+                AppLog.add("PmrSocket: ОШИБКА cmd=20 (CALL) — " + e.getMessage());
+            }
+        }).start();
     }
 
     public void sendBan(final int targetNumber, final int targetId) {

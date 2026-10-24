@@ -123,8 +123,16 @@ public class SettingsActivity extends AppCompatActivity {
             });
         }
 
-        if (prefs.getBoolean("is_admin_mode", false)) {
+        // V9.79: Показываем скрытые элементы только в режиме админа
+        boolean isAdmin = prefs.getBoolean("is_admin_mode", false);
+        if (isAdmin) {
             btnChanList.setVisibility(View.VISIBLE);
+            btnLogs.setVisibility(View.VISIBLE);
+            cbVerboseLog.setVisibility(View.VISIBLE);
+        } else {
+            btnChanList.setVisibility(View.GONE);
+            btnLogs.setVisibility(View.GONE);
+            cbVerboseLog.setVisibility(View.GONE);
         }
 
         findViewById(R.id.btnToggleServer).setOnClickListener(v -> {

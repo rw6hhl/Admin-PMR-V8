@@ -48,7 +48,7 @@ public class MainActivity extends AppCompatActivity {
     private final Handler speakingHandler = new Handler(Looper.getMainLooper());
     private final Runnable resetSpeakingId = () -> {
         tvSpeakingId.setText("");
-        imgGreen.setVisibility(View.INVISIBLE); // V9.78: гасим зеленый при сбросе
+        imgGreen.setVisibility(View.INVISIBLE);
         AppLog.add("MainActivity: resetSpeakingId — сброс текста CALL и зеленого индикатора (400 мс)");
     };
 
@@ -59,7 +59,6 @@ public class MainActivity extends AppCompatActivity {
             AppLog.add("MainActivity: BroadcastReceiver получил PMR_VOICE_RECEIVED, number=" + clientNumber);
             if (clientNumber != -1) {
                 int id;
-                // V9.78: Если 4-й канал (эхо), всегда показываем свой ID
                 if (currentChannel == 4) {
                     id = PmrSocket.Priznak_pmr;
                     AppLog.add("MainActivity: 4-й канал (эхо) — принудительно ставим свой ID=" + id);
@@ -83,7 +82,7 @@ public class MainActivity extends AppCompatActivity {
                 tvSpeakingId.setTextColor(Color.RED);
                 tvSpeakingId.setTypeface(null, Typeface.BOLD);
                 
-                imgGreen.setVisibility(View.VISIBLE); // V9.78: зажигаем зеленый при приеме
+                imgGreen.setVisibility(View.VISIBLE);
                 
                 speakingHandler.removeCallbacks(resetSpeakingId);
                 speakingHandler.postDelayed(resetSpeakingId, 400);
@@ -119,9 +118,9 @@ public class MainActivity extends AppCompatActivity {
         }
 
         String savedVersion = prefs.getString("app_version", "0");
-        if (!savedVersion.equals("9.78")) {
+        if (!savedVersion.equals("9.79")) {
             prefs.edit()
-                .putString("app_version", "9.78")
+                .putString("app_version", "9.79")
                 .putString("MyMailIndex", "51953")
                 .putString("Priznak_pmr", "26000")
                 .putInt("PORT_prm", 5253)
@@ -131,7 +130,7 @@ public class MainActivity extends AppCompatActivity {
                 .putBoolean("simplex", true)
                 .putBoolean("is_admin_mode", false)
                 .apply();
-            AppLog.add("MainActivity: Настройки сброшены (V9.78): Priznak=26000, Mail=51953, Ch=4, PORT_prm=5253, PORT_prd=16000");
+            AppLog.add("MainActivity: Настройки сброшены (V9.79): Priznak=26000, Mail=51953, Ch=4, PORT_prm=5253, PORT_prd=16000");
         }
 
         requestMicPermission();
@@ -153,7 +152,7 @@ public class MainActivity extends AppCompatActivity {
         updateUI();
         updatePowerButton();
 
-        AppLog.add("MainActivity: onCreate — сервис НЕ стартует автоматически (V9.78)");
+        AppLog.add("MainActivity: onCreate — сервис НЕ стартует автоматически (V9.79)");
     }
 
     private void beep() {
@@ -192,7 +191,7 @@ public class MainActivity extends AppCompatActivity {
         tvActiveUsers = findViewById(R.id.textView6);
         
         imgRed = findViewById(R.id.imageView);
-        imgGreen = findViewById(R.id.imageView2); // V9.78: зеленый индикатор приема
+        imgGreen = findViewById(R.id.imageView2);
         btnPower = findViewById(R.id.btnPower);
 
         btnMenu = findViewById(R.id.button4);
@@ -266,7 +265,13 @@ public class MainActivity extends AppCompatActivity {
                     Toast.makeText(this, "Ошибка: " + e.getMessage(), Toast.LENGTH_LONG).show();
                 }
             } else {
-                Toast.makeText(this, "Вызов (CALL)", Toast.LENGTH_SHORT).show();
+                // V9.79: Отправка вызова
+                if (PmrService.isRunning && PmrService.pmrSocket != null) {
+                    PmrService.pmrSocket.sendCall();
+                    Toast.makeText(this, "Вызов отправлен", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(this, "Сервис не запущен", Toast.LENGTH_SHORT).show();
+                }
             }
         });
 

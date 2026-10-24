@@ -19,7 +19,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
         android:layout_marginEnd="16dp"
-        android:text="v9.78"
+        android:text="v9.79"
         android:textColor="@color/colorButton"
         android:textSize="14sp"
         app:layout_constraintEnd_toEndOf="parent"
@@ -62,7 +62,6 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textView4" />
 
-    <!-- Счетчик активных пользователей -->
     <TextView
         android:id="@+id/textView6"
         android:layout_width="95dp"
@@ -77,7 +76,6 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.45" />
 
-    <!-- Индикаторы PTT (красный) и Прием (зеленый) -->
     <ImageView
         android:id="@+id/imageView2"
         android:layout_width="20dp"
@@ -104,13 +102,13 @@
         app:layout_constraintVertical_bias="0.3"
         app:srcCompat="@drawable/r1" />
 
-    <!-- === Кнопка ВКЛ/ВЫКЛ (зеленый/красный кружок вместо радиатора) === -->
+    <!-- Кнопка питания уменьшена на 20% (80dp - 16dp = 64dp) -->
     <ImageView
         android:id="@+id/btnPower"
-        android:layout_width="80dp"
-        android:layout_height="80dp"
-        android:layout_marginTop="50dp"
-        android:layout_marginEnd="25dp"
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:layout_marginTop="60dp"
+        android:layout_marginEnd="35dp"
         android:clickable="true"
         android:focusable="true"
         android:scaleType="fitCenter"

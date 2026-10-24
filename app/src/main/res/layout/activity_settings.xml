@@ -152,7 +152,7 @@
                 android:id="@+id/cbAskPassword"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Запрашивать пароль при входе в админку"
+                android:text="Запрашивать пароль"
                 android:textColor="@color/colortextabout"
                 android:checked="true"
                 android:layout_marginTop="8dp"
@@ -232,6 +232,7 @@
 
         </LinearLayout>
 
+        <!-- Скрываемые настройки (только для админа) -->
         <CheckBox
             android:id="@+id/cbVerboseLog"
             android:layout_width="match_parent"
@@ -239,6 +240,7 @@
             android:text="Вести подробный лог"
             android:textColor="@color/colortextabout"
             android:checked="true"
+            android:visibility="gone"
             android:layout_marginBottom="8dp" />
 
         <CheckBox
@@ -278,6 +280,7 @@
             android:text="ЗАГРУЗИТЬ list.txt"
             android:textColor="@color/colorButton" />
 
+        <!-- Скрываемая кнопка логов (только для админа) -->
         <Button
             android:id="@+id/btnLogs"
             android:layout_width="match_parent"
@@ -285,7 +288,8 @@
             android:layout_marginBottom="16dp"
             android:background="@drawable/roundshapebtn"
             android:text="Логи"
-            android:textColor="@color/colorButton" />
+            android:textColor="@color/colorButton"
+            android:visibility="gone" />
 
         <Button
             android:id="@+id/btnSaveSettings"
