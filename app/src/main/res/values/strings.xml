@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">PMR Client / Admin</string>
+    
+    <!-- Главный экран -->
+    <string name="menu">MENU</string>
+    <string name="call">CALL</string>
+    <string name="up">UP</string>
+    <string name="down">DOWN</string>
+    <string name="dupl">Duplex</string>
+    <string name="simpll">Simplex</string>
+    <string name="inchanel">In chanel:</string>
+    <string name="one">1</string>
+    <string name="two">2</string>
+    <string name="three">3</string>
+    <string name="four">4</string>
+    <string name="five">5</string>
+    
+    <!-- Настройки -->
+    <string name="simpl">Симплекс</string>
+    <string name="index">Индекс</string>
+    <string name="set">Режим передачи</string>
+    <string name="ip">IP адрес</string>
+    <string name="port">Порт</string>
+    <string name="rej0">GSM 32 kbps</string>
+    <string name="rej1">PCM 8 bit 8000 Hz 64 kbps</string>
+    <string name="rej2">G711 8000 Hz 64 kbps</string>
+    <string name="rej3">G711 16000 Hz 128 kbps</string>
+    <string name="rej4">PCM 8 bit 16000 Hz 128 kbps</string>
+    <string name="rej5">PCM 16 bit 8000 Hz 128 kbps</string>
+    <string name="rej6">PCM 16 bit 16000 Hz 256 kbps</string>
+</resources>
