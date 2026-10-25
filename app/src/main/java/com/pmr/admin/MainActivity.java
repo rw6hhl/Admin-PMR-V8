@@ -34,6 +34,10 @@ import androidx.core.content.ContextCompat;
 public class MainActivity extends AppCompatActivity {
     private static final int REQ_MIC = 101;
     private static final int PTT_LATCH_BLINK_PERIOD_MS = 500;
+    // V9.83: длительность, меньше которой нажатие считается «тапом», а не «удержанием»
+    private static final int PTT_TAP_MAX_MS = 300;
+    // V9.83: пауза ожидания второго тапа для распознавания двойного
+    private static final int PTT_DOUBLE_TAP_TIMEOUT_MS = 300;
 
     private SharedPreferences prefs;
     private TextView tvChannel, tvIndex, tvSpeakingId, tvVersion, tvActiveUsers;
@@ -46,13 +50,13 @@ public class MainActivity extends AppCompatActivity {
     private boolean soundEnabled = true;
 
     private GestureDetector gestureDetector;
-    private GestureDetector pttGestureDetector;
 
-    // V9.82: постоянная передача (PTT latch)
+    // V9.83: постоянная передача (PTT latch) — своя логика тапов без GestureDetector
     private boolean pttLatchEnabled = true;
     private boolean pttLatched = false;
-    private long pttLastDownTime = 0L;
-    private boolean pttDoubleTapConsumed = false;
+    private long pttDownTime = 0L;
+    private boolean pttHoldActive = false;      // сейчас идёт удержание (PMR_START отправлен)
+    private boolean pttTapPending = false;      // одиночный тап ожидает подтверждения
     private boolean blinkState = false;
 
     private final Handler speakingHandler = new Handler(Looper.getMainLooper());
@@ -71,6 +75,18 @@ public class MainActivity extends AppCompatActivity {
             imgRed.setVisibility(blinkState ? View.VISIBLE : View.INVISIBLE);
             blinkHandler.postDelayed(this, PTT_LATCH_BLINK_PERIOD_MS);
         }
+    };
+
+    private final Handler tapHandler = new Handler(Looper.getMainLooper());
+    // V9.83: срабатывает, если за PTT_DOUBLE_TAP_TIMEOUT_MS не пришёл второй тап
+    private final Runnable singleTapRunnable = () -> {
+        if (!pttTapPending) return;
+        pttTapPending = false;
+        AppLog.add("MainActivity: single tap (одиночный) — pttLatched=" + pttLatched);
+        if (pttLatched) {
+            stopPttLatch();
+        }
+        // если не latch — одиночный тап ничего не делает (по решению пользователя)
     };
 
     private BroadcastReceiver voiceReceiver = new BroadcastReceiver() {
@@ -139,9 +155,9 @@ public class MainActivity extends AppCompatActivity {
         }
 
         String savedVersion = prefs.getString("app_version", "0");
-        if (!savedVersion.equals("9.82")) {
+        if (!savedVersion.equals("9.83")) {
             prefs.edit()
-                .putString("app_version", "9.82")
+                .putString("app_version", "9.83")
                 .putString("MyMailIndex", "51953")
                 .putString("Priznak_pmr", "26000")
                 .putInt("PORT_prm", 5253)
@@ -152,7 +168,7 @@ public class MainActivity extends AppCompatActivity {
                 .putBoolean("is_admin_mode", false)
                 .putBoolean("ptt_latch_enabled", true)
                 .apply();
-            AppLog.add("MainActivity: Настройки сброшены (V9.82): Priznak=26000, Mail=51953, Ch=4, PORT_prm=5253, PORT_prd=16000, ptt_latch_enabled=true");
+            AppLog.add("MainActivity: Настройки сброшены (V9.83): Priznak=26000, Mail=51953, Ch=4, PORT_prm=5253, PORT_prd=16000, ptt_latch_enabled=true");
         }
 
         pttLatchEnabled = prefs.getBoolean("ptt_latch_enabled", true);
@@ -176,7 +192,7 @@ public class MainActivity extends AppCompatActivity {
         updateUI();
         updatePowerButton();
 
-        AppLog.add("MainActivity: onCreate — сервис НЕ стартует автоматически (V9.82)");
+        AppLog.add("MainActivity: onCreate — сервис НЕ стартует автоматически (V9.83)");
     }
 
     private void beep() {
@@ -255,29 +271,6 @@ public class MainActivity extends AppCompatActivity {
         btnSecretMode.setOnTouchListener((v, event) -> {
             gestureDetector.onTouchEvent(event);
             return true;
-        });
-
-        // V9.82: детектор двойного тапа по PTT
-        pttGestureDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
-            @Override
-            public boolean onDown(@NonNull MotionEvent e) {
-                return true;
-            }
-
-            @Override
-            public boolean onDoubleTap(@NonNull MotionEvent e) {
-                pttDoubleTapConsumed = true;
-                if (!pttLatchEnabled) {
-                    AppLog.add("MainActivity: PTT double-tap — ptt_latch_enabled=false, игнорируем");
-                    return true;
-                }
-                if (pttLatched) {
-                    stopPttLatch();
-                } else {
-                    startPttLatch();
-                }
-                return true;
-            }
         });
 
         btnPower.setOnClickListener(v -> {
@@ -365,46 +358,101 @@ public class MainActivity extends AppCompatActivity {
         btnSave4.setOnLongClickListener(v -> { beep(); savePreset(4); return true; });
         btnSave5.setOnLongClickListener(v -> { beep(); savePreset(5); return true; });
 
-        // V9.82: PTT — объединённая логика hold-to-talk + double-tap latch
+        // V9.83: PTT — своя логика тапов без GestureDetector
         btnPTT.setOnTouchListener((v, event) -> {
-            pttGestureDetector.onTouchEvent(event);
-            switch (event.getAction()) {
+            switch (event.getActionMasked()) {
                 case MotionEvent.ACTION_DOWN:
-                    beep();
-                    AppLog.add("MainActivity: PTT ACTION_DOWN, pttLatched=" + pttLatched);
-                    pttLastDownTime = System.currentTimeMillis();
-                    pttDoubleTapConsumed = false;
-                    if (!pttLatched) {
-                        imgRed.setVisibility(View.VISIBLE);
-                        sendBroadcast(new Intent("PMR_START_RECORDING"));
+                    pttDownTime = System.currentTimeMillis();
+                    pttHoldActive = false;
+                    AppLog.add("MainActivity: PTT DOWN, pttLatched=" + pttLatched
+                            + ", tapPending=" + pttTapPending);
+                    return true;
+
+                case MotionEvent.ACTION_MOVE:
+                    if (!pttHoldActive && !pttLatched) {
+                        long dt = System.currentTimeMillis() - pttDownTime;
+                        if (dt >= PTT_TAP_MAX_MS) {
+                            // Переросло в удержание — отправляем START, гасим ожидание тапа
+                            cancelTapWaiting();
+                            pttHoldActive = true;
+                            beep();
+                            imgRed.setVisibility(View.VISIBLE);
+                            sendBroadcast(new Intent("PMR_START_RECORDING"));
+                            AppLog.add("MainActivity: PTT hold (MOVE, dt=" + dt + ") — START_RECORDING");
+                        }
                     }
                     return true;
+
                 case MotionEvent.ACTION_UP:
                 case MotionEvent.ACTION_CANCEL:
-                    long duration = System.currentTimeMillis() - pttLastDownTime;
-                    AppLog.add("MainActivity: PTT ACTION_UP/CANCEL, duration=" + duration
-                            + ", pttDoubleTapConsumed=" + pttDoubleTapConsumed
-                            + ", pttLatched=" + pttLatched);
-                    if (pttLatched) {
-                        // Если включён latch и это был одиночный тап (не double-tap) — выключаем
-                        if (!pttDoubleTapConsumed) {
-                            stopPttLatch();
-                        }
-                    } else {
-                        // Обычный hold-to-talk
+                    long duration = System.currentTimeMillis() - pttDownTime;
+                    boolean isCancel = event.getActionMasked() == MotionEvent.ACTION_CANCEL;
+                    AppLog.add("MainActivity: PTT UP/CANCEL, duration=" + duration
+                            + ", hold=" + pttHoldActive
+                            + ", pttLatched=" + pttLatched
+                            + ", tapPending=" + pttTapPending
+                            + ", cancel=" + isCancel);
+
+                    if (pttHoldActive) {
+                        // Обычное удержание завершено
+                        pttHoldActive = false;
                         imgRed.setVisibility(View.INVISIBLE);
                         sendBroadcast(new Intent("PMR_STOP_RECORDING"));
+                        AppLog.add("MainActivity: PTT hold завершено — STOP_RECORDING");
+                        return true;
                     }
-                    pttDoubleTapConsumed = false;
+
+                    if (isCancel) {
+                        // Отмена — ничего не считаем тапом
+                        return true;
+                    }
+
+                    if (duration >= PTT_TAP_MAX_MS) {
+                        // Долгий тап: hold-to-talk без MOVE-события
+                        if (!pttLatched) {
+                            beep();
+                            imgRed.setVisibility(View.VISIBLE);
+                            sendBroadcast(new Intent("PMR_START_RECORDING"));
+                            imgRed.setVisibility(View.INVISIBLE);
+                            sendBroadcast(new Intent("PMR_STOP_RECORDING"));
+                            AppLog.add("MainActivity: PTT долгий одиночный — короткий START/STOP");
+                        }
+                        return true;
+                    }
+
+                    // Короткий тап (< PTT_TAP_MAX_MS)
+                    if (pttTapPending) {
+                        // Второй тап — двойной
+                        cancelTapWaiting();
+                        AppLog.add("MainActivity: PTT double tap распознан");
+                        if (!pttLatchEnabled) {
+                            AppLog.add("MainActivity: PTT double tap — ptt_latch_enabled=false, игнорируем");
+                        } else {
+                            if (pttLatched) {
+                                stopPttLatch();
+                            } else {
+                                startPttLatch();
+                            }
+                        }
+                    } else {
+                        // Первый тап — ждём второй
+                        pttTapPending = true;
+                        tapHandler.postDelayed(singleTapRunnable, PTT_DOUBLE_TAP_TIMEOUT_MS);
+                        AppLog.add("MainActivity: PTT tap #1 — ожидание второго тапа " + PTT_DOUBLE_TAP_TIMEOUT_MS + " мс");
+                    }
                     return true;
             }
             return false;
         });
     }
 
-    /**
-     * V9.82: включить постоянную передачу.
-     */
+    // V9.83: отмена ожидания одиночного тапа (когда распознан двойной или началось удержание)
+    private void cancelTapWaiting() {
+        pttTapPending = false;
+        tapHandler.removeCallbacks(singleTapRunnable);
+    }
+
+    // V9.83: включить постоянную передачу
     private void startPttLatch() {
         if (pttLatched) return;
         pttLatched = true;
@@ -416,9 +464,7 @@ public class MainActivity extends AppCompatActivity {
         Toast.makeText(this, "Постоянная передача ВКЛ", Toast.LENGTH_SHORT).show();
     }
 
-    /**
-     * V9.82: выключить постоянную передачу, перейти на приём.
-     */
+    // V9.83: выключить постоянную передачу
     private void stopPttLatch() {
         if (!pttLatched) return;
         pttLatched = false;
@@ -599,10 +645,15 @@ public class MainActivity extends AppCompatActivity {
         AppLog.add("MainActivity: onDestroy");
         speakingHandler.removeCallbacks(resetSpeakingId);
         blinkHandler.removeCallbacks(blinkRunnable);
+        tapHandler.removeCallbacks(singleTapRunnable);
         if (pttLatched) {
             AppLog.add("MainActivity: onDestroy — принудительно выключаем постоянную передачу");
             try { sendBroadcast(new Intent("PMR_STOP_RECORDING")); } catch (Exception ignored) {}
             pttLatched = false;
+        }
+        if (pttHoldActive) {
+            try { sendBroadcast(new Intent("PMR_STOP_RECORDING")); } catch (Exception ignored) {}
+            pttHoldActive = false;
         }
         if (toneGen != null) {
             try { toneGen.release(); } catch (Exception ignored) {}
